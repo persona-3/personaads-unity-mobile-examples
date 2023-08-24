@@ -18,7 +18,7 @@ Install the package via the [Unity Package Manager using a Git URL](https://docs
 ```https://github.com/getsentry/unity.git#1.5.1```
 
 ## Set your API Key and Environment
-In the Unity editor, select **Assets > Google Mobile Ads > Settings** from the menu.
+In the Unity editor, select **Assets > Persona Mobile Ads > Settings** from the menu.
 
 ![PersonaMobileAdsSettings](https://i.imgur.com/WZUWtlJl.png)
 
