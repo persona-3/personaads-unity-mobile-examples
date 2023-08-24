@@ -1,12 +1,20 @@
 {
   "dependencies": {
     "com.unity.adaptiveperformance": {
-      "version": "4.0.1",
+      "version": "5.0.0",
       "depth": 1,
       "source": "registry",
       "dependencies": {
-        "com.unity.subsystemregistration": "1.1.0",
         "com.unity.profiling.core": "1.0.2"
+      },
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.adaptiveperformance.samsung.android": {
+      "version": "5.0.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.adaptiveperformance": "5.0.0"
       },
       "url": "https://packages.unity.com"
     },
@@ -82,15 +90,6 @@
       "dependencies": {},
       "url": "https://packages.unity.com"
     },
-    "com.unity.subsystemregistration": {
-      "version": "1.1.1",
-      "depth": 2,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.modules.subsystems": "1.0.0"
-      },
-      "url": "https://packages.unity.com"
-    },
     "com.unity.test-framework": {
       "version": "1.1.33",
       "depth": 0,
@@ -141,6 +140,13 @@
         "com.unity.modules.jsonserialize": "1.0.0"
       },
       "url": "https://packages.unity.com"
+    },
+    "io.sentry.unity": {
+      "version": "https://github.com/getsentry/unity.git#1.5.1",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "4e715872fd2a167a6a001dbef3b5b69319b95f28"
     },
     "com.unity.modules.ai": {
       "version": "1.0.0",
