@@ -72,6 +72,10 @@ public class EntryPoint : MonoBehaviour
 // 0 and 100 are the x and y coordinates respectively where you want to position the ad.
 
         BannerView bannerView = new BannerView(this, "9e643cf1-17f3-4de8-b28d-eb85eef60f91", 0, 100);
+
+        bannerView.SetWalletAddress("0xYourWalletAddress"); // Example wallet address - Optional field
+        bannerView.SetUserEmail("sample.email@example.com"); // Example user email - Optional field
+
         bannerView.LoadAd();
     }
 }
