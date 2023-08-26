@@ -85,3 +85,11 @@ Note- You will find the adUnitId in the Persona's dashboard UI for publishers af
 **3. Attach your script to RawImage in the Inspector pane**
 
 ![InspectorPaneUnity](https://i.imgur.com/vC0gdOxl.png)
+
+## Staging Ad Unit IDs
+Following are the **supported Banner Ad Formats** and their corresponding AdUnit Ids for the staging environment:
+1. 600x160 : ```5470eef5-da8a-40d8-8e0f-a50882844770```
+2. 300x250 : ```9e643cf1-17f3-4de8-b28d-eb85eef60f91```
+3. 970x90 : ```a6280861-fb15-466d-8a0d-9e82f0e4ffa0```
+
+Note: You can use ```XXX_api_key_2_XXX``` as your API Key along with the above mentioned adUnit IDs for testing the ads in staging environment.
