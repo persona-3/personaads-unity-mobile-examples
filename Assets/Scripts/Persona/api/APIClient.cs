@@ -5,107 +5,110 @@ using System.Collections.Generic;
 using System.Text;
 using System;
 
-public class APIClient
+namespace IO.Persona.MobileAds.Unity
 {
-
-    public APIClient()
+    public class APIClient
     {
 
-    }
-
-
-    public async Task<string> MakeGetRequestAsync(string url, Dictionary<string, string> queryParams, Dictionary<string, string> headers)
-    {
-        // Construct the query parameters
-        if (queryParams != null && queryParams.Count > 0)
+        public APIClient()
         {
-            StringBuilder queryString = new StringBuilder("?");
-            foreach (var param in queryParams)
-            {
-                queryString.Append($"{UnityWebRequest.EscapeURL(param.Key)}={UnityWebRequest.EscapeURL(param.Value)}&");
-            }
-            url += queryString.ToString().TrimEnd('&');
+
         }
 
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
 
+        public async Task<string> MakeGetRequestAsync(string url, Dictionary<string, string> queryParams, Dictionary<string, string> headers)
         {
-
-            headers ??= new Dictionary<string, string>();
-
-            headers.Add("x-api-key", PersonaAdSDK.GetApiKey());
-            headers.Add("Package-Name", Application.identifier);
-
-            foreach (var header in headers)
+            // Construct the query parameters
+            if (queryParams != null && queryParams.Count > 0)
             {
-                webRequest.SetRequestHeader(header.Key, header.Value);
+                StringBuilder queryString = new StringBuilder("?");
+                foreach (var param in queryParams)
+                {
+                    queryString.Append($"{UnityWebRequest.EscapeURL(param.Key)}={UnityWebRequest.EscapeURL(param.Value)}&");
+                }
+                url += queryString.ToString().TrimEnd('&');
             }
 
-            UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
 
-            while (!asyncOperation.isDone)
             {
-                await Task.Yield();
-            }
 
-            if (webRequest.result != UnityWebRequest.Result.Success)
-            {
-                throw new Exception(webRequest.error);
-            }
-            else
-            {
-                string response = webRequest.downloadHandler.text;
-                return response;
+                headers ??= new Dictionary<string, string>();
+
+                headers.Add("x-api-key", PersonaAdSDK.GetApiKey());
+                headers.Add("Package-Name", Application.identifier);
+
+                foreach (var header in headers)
+                {
+                    webRequest.SetRequestHeader(header.Key, header.Value);
+                }
+
+                UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
+
+                while (!asyncOperation.isDone)
+                {
+                    await Task.Yield();
+                }
+
+                if (webRequest.result != UnityWebRequest.Result.Success)
+                {
+                    throw new Exception(webRequest.error);
+                }
+                else
+                {
+                    string response = webRequest.downloadHandler.text;
+                    return response;
+                }
             }
         }
-    }
 
 
-    public async Task<string> MakePostRequestAsync(string url, string postData, Dictionary<string, string> queryParams, Dictionary<string, string> headers)
-    {
-        // Construct the query parameters
-        if (queryParams != null && queryParams.Count > 0)
+        public async Task<string> MakePostRequestAsync(string url, string postData, Dictionary<string, string> queryParams, Dictionary<string, string> headers)
         {
-            StringBuilder queryString = new StringBuilder("?");
-            foreach (var param in queryParams)
+            // Construct the query parameters
+            if (queryParams != null && queryParams.Count > 0)
             {
-                queryString.Append($"{UnityWebRequest.EscapeURL(param.Key)}={UnityWebRequest.EscapeURL(param.Value)}&");
-            }
-            url += queryString.ToString().TrimEnd('&');
-        }
-
-        using (UnityWebRequest webRequest = new UnityWebRequest(url, "POST"))
-        {
-            byte[] postDataBytes = Encoding.UTF8.GetBytes(postData);
-            webRequest.uploadHandler = new UploadHandlerRaw(postDataBytes);
-            webRequest.downloadHandler = new DownloadHandlerBuffer();
-
-            headers ??= new Dictionary<string, string>();
-
-            headers.Add("Content-Type", "application/json");
-            headers.Add("x-api-key", PersonaAdSDK.GetApiKey());
-            headers.Add("Package-Name", Application.identifier);
-
-            foreach (var header in headers)
-            {
-                webRequest.SetRequestHeader(header.Key, header.Value);
+                StringBuilder queryString = new StringBuilder("?");
+                foreach (var param in queryParams)
+                {
+                    queryString.Append($"{UnityWebRequest.EscapeURL(param.Key)}={UnityWebRequest.EscapeURL(param.Value)}&");
+                }
+                url += queryString.ToString().TrimEnd('&');
             }
 
-            UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
+            using (UnityWebRequest webRequest = new UnityWebRequest(url, "POST"))
+            {
+                byte[] postDataBytes = Encoding.UTF8.GetBytes(postData);
+                webRequest.uploadHandler = new UploadHandlerRaw(postDataBytes);
+                webRequest.downloadHandler = new DownloadHandlerBuffer();
 
-            while (!asyncOperation.isDone)
-            {
-                await Task.Yield();
-            }
+                headers ??= new Dictionary<string, string>();
 
-            if (webRequest.result != UnityWebRequest.Result.Success)
-            {
-                throw new Exception(webRequest.error);
-            }
-            else
-            {
-                string response = webRequest.downloadHandler.text;
-                return response;
+                headers.Add("Content-Type", "application/json");
+                headers.Add("x-api-key", PersonaAdSDK.GetApiKey());
+                headers.Add("Package-Name", Application.identifier);
+
+                foreach (var header in headers)
+                {
+                    webRequest.SetRequestHeader(header.Key, header.Value);
+                }
+
+                UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
+
+                while (!asyncOperation.isDone)
+                {
+                    await Task.Yield();
+                }
+
+                if (webRequest.result != UnityWebRequest.Result.Success)
+                {
+                    throw new Exception(webRequest.error);
+                }
+                else
+                {
+                    string response = webRequest.downloadHandler.text;
+                    return response;
+                }
             }
         }
     }

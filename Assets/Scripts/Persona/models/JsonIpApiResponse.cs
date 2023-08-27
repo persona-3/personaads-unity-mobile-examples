@@ -1,7 +1,10 @@
 ﻿using System;
 
-[Serializable]
-public class JsonIpApiResponse
+namespace IO.Persona.MobileAds.Unity
 {
-    public string ip;
+    [Serializable]
+    public class JsonIpApiResponse
+    {
+        public string ip;
+    }
 }

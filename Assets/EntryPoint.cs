@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using IO.Persona.MobileAds.Unity;
 using UnityEngine;
 
 public class EntryPoint : MonoBehaviour

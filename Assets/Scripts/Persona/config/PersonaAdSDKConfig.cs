@@ -1,15 +1,17 @@
 using System.IO;
 using UnityEngine;
 
-public class PersonaAdSDKConfig : ScriptableObject
+namespace IO.Persona.MobileAds.Unity
 {
-    public string apiKey = "";
-    public string environment = "";
-
-    public static PersonaAdSDKConfig? CreateConfig()
+    public class PersonaAdSDKConfig : ScriptableObject
     {
-        PersonaAdSDKConfig config = null;
-        #if UNITY_EDITOR
+        public string apiKey = "";
+        public string environment = "";
+
+        public static PersonaAdSDKConfig? CreateConfig()
+        {
+            PersonaAdSDKConfig config = null;
+#if UNITY_EDITOR
             string folderPath = "Assets/Resources/Persona";
             // Ensure that the parent directory exists
             if (!Directory.Exists(folderPath))
@@ -24,7 +26,8 @@ public class PersonaAdSDKConfig : ScriptableObject
 
             UnityEditor.AssetDatabase.CreateAsset(config, assetPath);
             UnityEditor.AssetDatabase.SaveAssets();
-        #endif
-        return config;
+#endif
+            return config;
+        }
     }
 }
