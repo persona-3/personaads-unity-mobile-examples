@@ -1,24 +1,27 @@
 ﻿using System;
 
-public class OnAdLoadFailedEventProperties
+namespace IO.Persona.MobileAds.Unity
 {
-    public string placementId;
-    public string walletAddress;
-    public string userEmail;
-    public DeviceMetadata deviceMetadata;
-    public string creativeId;
-    public int errorStatus;
-    public string errorMessage;
-
-    public OnAdLoadFailedEventProperties(string placementId, string walletAddress, string userEmail, DeviceMetadata deviceMetadata, string creativeId, int errorStatus, string errorMessage)
+    public class OnAdLoadFailedEventProperties
     {
-        this.placementId = placementId;
-        this.walletAddress = walletAddress;
-        this.userEmail = userEmail;
-        this.deviceMetadata = deviceMetadata;
-        this.creativeId = creativeId;
-        this.errorStatus = errorStatus;
-        this.errorMessage = errorMessage;
+        public string placementId;
+        public string walletAddress;
+        public string userEmail;
+        public DeviceMetadata deviceMetadata;
+        public string creativeId;
+        public int errorStatus;
+        public string errorMessage;
+
+        public OnAdLoadFailedEventProperties(string placementId, string walletAddress, string userEmail, DeviceMetadata deviceMetadata, string creativeId, int errorStatus, string errorMessage)
+        {
+            this.placementId = placementId;
+            this.walletAddress = walletAddress;
+            this.userEmail = userEmail;
+            this.deviceMetadata = deviceMetadata;
+            this.creativeId = creativeId;
+            this.errorStatus = errorStatus;
+            this.errorMessage = errorMessage;
+        }
     }
 }
 

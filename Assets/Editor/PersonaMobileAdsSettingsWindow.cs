@@ -1,53 +1,56 @@
 using UnityEditor;
 using UnityEngine;
 
-public class PersonaMobileAdsSettingsWindow : EditorWindow
+namespace IO.Persona.MobileAds.Unity
 {
-    private PersonaAdSDKConfig config;
-
-    [MenuItem("Assets/Persona Mobile Ads/Settings...")]
-    public static void ShowWindow()
+    public class PersonaMobileAdsSettingsWindow : EditorWindow
     {
-        GetWindow<PersonaMobileAdsSettingsWindow>("Persona Mobile Ads Settings");
-    }
+        private PersonaAdSDKConfig config;
 
-    private void OnGUI()
-    {
-        config = Resources.Load<PersonaAdSDKConfig>("Persona/PersonaAdSDKConfig");
-        if (config == null)
+        [MenuItem("Assets/Persona Mobile Ads/Settings...")]
+        public static void ShowWindow()
         {
-            config = PersonaAdSDKConfig.CreateConfig();
+            GetWindow<PersonaMobileAdsSettingsWindow>("Persona Mobile Ads Settings");
+        }
 
+        private void OnGUI()
+        {
+            config = Resources.Load<PersonaAdSDKConfig>("Persona/PersonaAdSDKConfig");
             if (config == null)
             {
-                Debug.LogError("PersonaAdSDKConfig not found. Make sure the config exists.");
+                config = PersonaAdSDKConfig.CreateConfig();
+
+                if (config == null)
+                {
+                    Debug.LogError("PersonaAdSDKConfig not found. Make sure the config exists.");
+                }
             }
+
+            GUILayout.Space(10);
+            GUILayout.Label("Persona Mobile Ads", EditorStyles.boldLabel);
+
+            GUILayout.BeginVertical("box");
+
+            GUILayout.Space(10);
+
+            GUILayout.Label("API Key:", EditorStyles.boldLabel);
+            config.apiKey = EditorGUILayout.TextField(config.apiKey);
+
+            GUILayout.Space(10);
+
+            GUILayout.Label("Environment:", EditorStyles.boldLabel);
+            config.environment = EditorGUILayout.TextField(config.environment);
+
+            GUILayout.Space(20);
+
+            if (GUILayout.Button("Save", GUILayout.Height(30)))
+            {
+                EditorUtility.SetDirty(config); // Mark the ScriptableObject as dirty
+                AssetDatabase.SaveAssets(); // Save the changes
+                Close();
+            }
+
+            GUILayout.EndVertical();
         }
-
-        GUILayout.Space(10);
-        GUILayout.Label("Persona Mobile Ads", EditorStyles.boldLabel);
-
-        GUILayout.BeginVertical("box");
-
-        GUILayout.Space(10);
-
-        GUILayout.Label("API Key:", EditorStyles.boldLabel);
-        config.apiKey = EditorGUILayout.TextField(config.apiKey);
-
-        GUILayout.Space(10);
-
-        GUILayout.Label("Environment:", EditorStyles.boldLabel);
-        config.environment = EditorGUILayout.TextField(config.environment);
-
-        GUILayout.Space(20);
-
-        if (GUILayout.Button("Save", GUILayout.Height(30)))
-        {
-            EditorUtility.SetDirty(config); // Mark the ScriptableObject as dirty
-            AssetDatabase.SaveAssets(); // Save the changes
-            Close();
-        }
-
-        GUILayout.EndVertical();
     }
 }

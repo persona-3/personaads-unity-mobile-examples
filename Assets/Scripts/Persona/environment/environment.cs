@@ -1,6 +1,9 @@
-public enum Environment
+namespace IO.Persona.MobileAds.Unity
 {
-    DEVELOPMENT,
-    STAGING,
-    PRODUCTION
+    public enum Environment
+    {
+        DEVELOPMENT,
+        STAGING,
+        PRODUCTION
+    }
 }
