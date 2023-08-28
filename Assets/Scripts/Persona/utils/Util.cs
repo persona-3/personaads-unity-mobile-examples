@@ -60,7 +60,7 @@ namespace IO.Persona.MobileAds.Unity
             return ("https://storage.googleapis.com/fallback-ad-inventory/" + width.ToString() + "x" + height.ToString() + ".png");
         }
 
-        public static async Task<Sprite> DownloadImageFromUrl(string mediaUrl)
+        public static async Task<Texture2D> DownloadImageFromUrl(string mediaUrl)
         {
             using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(mediaUrl))
             {
@@ -78,14 +78,12 @@ namespace IO.Persona.MobileAds.Unity
                 else
                 {
                     Texture2D downloadedTexture = DownloadHandlerTexture.GetContent(request);
-                    Sprite imageSprite = Sprite.Create(downloadedTexture, new Rect(0, 0, downloadedTexture.width, downloadedTexture.height), Vector2.zero);
-
-                    return imageSprite;
+                    return downloadedTexture;
                 }
             }
         }
 
-        public static async Task<List<(Sprite, float)>> DownloadGifFromUrl(string url)
+        public static async Task<List<(Texture2D, float)>> DownloadGifFromUrl(string url)
         {
             using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
 
@@ -108,7 +106,7 @@ namespace IO.Persona.MobileAds.Unity
                     SimpleGif.Gif gif = SimpleGif.Gif.Decode(gifBytes);
 
                     // Convert the GIF frames into Unity sprites
-                    List<(Sprite, float)> spriteFrames = new List<(Sprite, float)>();
+                    List<(Texture2D, float)> textureFrames = new List<(Texture2D, float)>();
                     foreach (var frame in gif.Frames)
                     {
                         Texture2D texture = new Texture2D(frame.Texture.width, frame.Texture.height);
@@ -131,26 +129,26 @@ namespace IO.Persona.MobileAds.Unity
 
                         float delayInSeconds = frame.Delay;
 
-                        Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * 0.5f);
-                        spriteFrames.Add((sprite, delayInSeconds));
+                        //Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * 0.5f);
+                        textureFrames.Add((texture, delayInSeconds));
                     }
-                    return spriteFrames;
+                    return textureFrames;
                 }
             }
         }
 
-        public static IEnumerator PlayGifAnimation(List<(Sprite sprite, float delay)> sprites, RawImage rawImage)
+        public static IEnumerator PlayGifAnimation(List<(Texture2D texture, float delay)> textures, RawImage rawImage)
         {
             int currentFrameIndex = 0;
 
             while (true)
             {
-                var frameData = sprites[currentFrameIndex];
+                var frameData = textures[currentFrameIndex];
 
-                rawImage.texture = frameData.sprite.texture;
-                rawImage.rectTransform.sizeDelta = new Vector2(frameData.sprite.rect.width, frameData.sprite.rect.height);
+                rawImage.texture = frameData.texture;
+                //rawImage.rectTransform.sizeDelta = new Vector2(frameData.sprite.rect.width, frameData.sprite.rect.height);
 
-                currentFrameIndex = (currentFrameIndex + 1) % sprites.Count;
+                currentFrameIndex = (currentFrameIndex + 1) % textures.Count;
 
                 yield return new WaitForSeconds(frameData.delay);
             }
