@@ -14,17 +14,17 @@ namespace IO.Persona.MobileAds.Unity
         private string userEmail = null;
         private string walletAddress = null;
         private string requestId = "";
-        private readonly float xCoord;
-        private readonly float yCoord;
+        //private readonly float xCoord;
+        //private readonly float yCoord;
         private readonly MonoBehaviour parent;
 
         AdEventService _adEventService;
 
-        public BannerView(MonoBehaviour parent, string adUnitId, float xCoord, float yCoord)
+        public BannerView(MonoBehaviour parent, string adUnitId)
         {
             this.adUnitId = adUnitId;
-            this.xCoord = xCoord;
-            this.yCoord = yCoord;
+            //this.xCoord = xCoord;
+            //this.yCoord = yCoord;
             this.parent = parent;
         }
 
@@ -55,8 +55,8 @@ namespace IO.Persona.MobileAds.Unity
             transaction.SetTag("p3-api-key", PersonaAdSDK.GetApiKey());
             transaction.SetTag("p3-current-environment", currentEnvironment.ToString());
             transaction.SetTag("p3-ad-unit-id", this.adUnitId);
-            transaction.SetTag("p3-x-coord", this.xCoord.ToString());
-            transaction.SetTag("p3-y-coord", this.yCoord.ToString());
+            //transaction.SetTag("p3-x-coord", this.xCoord.ToString());
+            //transaction.SetTag("p3-y-coord", this.yCoord.ToString());
             transaction.SetTag("p3-user-email", this.userEmail);
             transaction.SetTag("p3-wallet-address", this.walletAddress);
             transaction.SetTag("p3-app-package-name", Application.identifier);
@@ -193,18 +193,19 @@ namespace IO.Persona.MobileAds.Unity
 
                 if (mediaUrlParts[mediaUrlParts.Length - 1].Contains("gif"))
                 {
-                    rawImage.rectTransform.anchoredPosition = new Vector2(this.xCoord, this.yCoord);
+                    //rawImage.rectTransform.anchoredPosition = new Vector2(this.xCoord, this.yCoord);
 
-                    List<(Sprite, float)> spriteImages = await Util.DownloadGifFromUrl(mediaUrl);
-                    parent.StartCoroutine(Util.PlayGifAnimation(spriteImages, rawImage));
+                    List<(Texture2D, float)> textureImages = await Util.DownloadGifFromUrl(mediaUrl);
+                    parent.StartCoroutine(Util.PlayGifAnimation(textureImages, rawImage));
                 }
                 else
                 {
-                    Sprite imageSprite = await Util.DownloadImageFromUrl(mediaUrl);
+                    Texture2D imageTexture = await Util.DownloadImageFromUrl(mediaUrl);
 
-                    rawImage.texture = imageSprite.texture;
-                    rawImage.rectTransform.sizeDelta = new Vector2(imageSprite.rect.width, imageSprite.rect.height);
-                    rawImage.rectTransform.anchoredPosition = new Vector2(this.xCoord, this.yCoord);
+                    rawImage.texture = imageTexture;
+
+                    //rawImage.rectTransform.sizeDelta = new Vector2(imageSprite.rect.width, imageSprite.rect.height);
+                    //rawImage.rectTransform.anchoredPosition = new Vector2(this.xCoord, this.yCoord);
                 }
                 try
                 {
@@ -242,11 +243,12 @@ namespace IO.Persona.MobileAds.Unity
                 int creativeWidth = fetchedCreative.data.dimensions.width;
                 int creativeHeight = fetchedCreative.data.dimensions.height;
 
-                Sprite imageSprite = await Util.DownloadImageFromUrl(Util.GetFallbackImageUrl(creativeWidth, creativeHeight));
+                Texture2D imageTexture = await Util.DownloadImageFromUrl(Util.GetFallbackImageUrl(creativeWidth, creativeHeight));
 
-                rawImage.texture = imageSprite.texture;
-                rawImage.rectTransform.sizeDelta = new Vector2(imageSprite.rect.width, imageSprite.rect.height);
-                rawImage.rectTransform.anchoredPosition = new Vector2(this.xCoord, this.yCoord);
+                rawImage.texture = imageTexture;
+
+                //rawImage.rectTransform.sizeDelta = new Vector2(imageSprite.rect.width, imageSprite.rect.height);
+                //rawImage.rectTransform.anchoredPosition = new Vector2(this.xCoord, this.yCoord);
 
                 renderFallbackImageSpan.Finish();
 
