@@ -11,11 +11,11 @@ Register your app in the Persona platform by completing the following steps:
 
 ## Download the Mobile Ads Unity package
 
-Use this link to download the Unity package- [Download](https://github.com/persona-3/personaads-unity-mobile-examples/releases/download/v0.0.2/io.persona3.mobileads-v0.0.2.unitypackage)
+Use this link to download the Unity package- [Download](https://github.com/persona-3/personaads-unity-mobile-examples/releases/download/v0.0.3/io.persona3.mobileads-v0.0.3.unitypackage)
 
 ## Import the Mobile Ads Unity package
 
-To import the package, open your project in the Unity editor, select **Assets > Import Package > Custom Package**, and find the _io.persona3.mobileads-v0.0.2.unitypackage_ file you downloaded. Make sure all of the files are selected and click Import.
+To import the package, open your project in the Unity editor, select **Assets > Import Package > Custom Package**, and find the _io.persona3.mobileads-v0.0.3.unitypackage_ file you downloaded. Make sure all of the files are selected and click Import.
 
 ## Include external dependencies
 
@@ -78,10 +78,8 @@ public class EntryPoint : MonoBehaviour
     {
         PersonaAdSDK.Initialize();
 
-// Here "9e643cf1-17f3-4de8-b28d-eb85eef60f91" is used as the sample adUnitId
-// 0 and 100 are the x and y coordinates respectively where you want to position the ad.
-
-        BannerView bannerView = new BannerView(this, "9e643cf1-17f3-4de8-b28d-eb85eef60f91", 0, 100);
+        // Here "9e643cf1-17f3-4de8-b28d-eb85eef60f91" is used as the sample adUnitId
+        BannerView bannerView = new BannerView(this, "9e643cf1-17f3-4de8-b28d-eb85eef60f91");
 
         bannerView.SetWalletAddress("0xYourWalletAddress"); // Example wallet address - Optional field
         bannerView.SetUserEmail("sample.email@example.com"); // Example user email - Optional field
