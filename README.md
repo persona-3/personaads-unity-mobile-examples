@@ -11,17 +11,17 @@ Register your app in the Persona platform by completing the following steps:
 
 ## Download the Mobile Ads Unity package
 
-Use this link to download the Unity package- [Download](https://github.com/persona-3/personaads-unity-mobile-examples/releases/download/v0.0.3/io.persona3.mobileads-v0.0.3.unitypackage)
+Use this link to download the Unity package- [Download](https://github.com/persona-3/personaads-unity-mobile-examples/releases/download/v0.0.4/io.persona3.mobileads-v0.0.4.unitypackage)
 
 ## Import the Mobile Ads Unity package
 
-To import the package, open your project in the Unity editor, select **Assets > Import Package > Custom Package**, and find the _io.persona3.mobileads-v0.0.3.unitypackage_ file you downloaded. Make sure all of the files are selected and click Import.
+To import the package, open your project in the Unity editor, select **Assets > Import Package > Custom Package**, and find the _io.persona3.mobileads-v0.0.4.unitypackage_ file you downloaded. Make sure all of the files are selected and click Import.
 
 ## Include external dependencies
 
 We use Sentry as an external dependency for better logging and monitoring to improve our services.
 Install the package via the [Unity Package Manager using a Git URL](https://docs.unity3d.com/Manual/upm-ui-giturl.html) to Sentry's SDK repository:
-`https://github.com/getsentry/unity.git#1.5.1`
+`https://github.com/getsentry/unity.git#1.5.2`
 
 ## Set your API Key and Environment
 
@@ -78,8 +78,8 @@ public class EntryPoint : MonoBehaviour
     {
         PersonaAdSDK.Initialize();
 
-        // Here "9e643cf1-17f3-4de8-b28d-eb85eef60f91" is used as the sample adUnitId
-        BannerView bannerView = new BannerView(this, "9e643cf1-17f3-4de8-b28d-eb85eef60f91");
+        // Here "5470eef5-da8a-40d8-8e0f-a50882844770" is used as the sample adUnitId
+        BannerView bannerView = new BannerView(this, "5470eef5-da8a-40d8-8e0f-a50882844770");
 
         bannerView.SetWalletAddress("0xYourWalletAddress"); // Example wallet address - Optional field
         bannerView.SetUserEmail("sample.email@example.com"); // Example user email - Optional field
