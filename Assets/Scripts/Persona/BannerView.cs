@@ -14,17 +14,14 @@ namespace IO.Persona.MobileAds.Unity
         private string userEmail = null;
         private string walletAddress = null;
         private string requestId = "";
-        //private readonly float xCoord;
-        //private readonly float yCoord;
         private readonly MonoBehaviour parent;
+        Dictionary<string, string> customizedTags = new Dictionary<string, string>();
 
         AdEventService _adEventService;
 
         public BannerView(MonoBehaviour parent, string adUnitId)
         {
             this.adUnitId = adUnitId;
-            //this.xCoord = xCoord;
-            //this.yCoord = yCoord;
             this.parent = parent;
         }
 
@@ -55,11 +52,16 @@ namespace IO.Persona.MobileAds.Unity
             transaction.SetTag("p3-api-key", PersonaAdSDK.GetApiKey());
             transaction.SetTag("p3-current-environment", currentEnvironment.ToString());
             transaction.SetTag("p3-ad-unit-id", this.adUnitId);
-            //transaction.SetTag("p3-x-coord", this.xCoord.ToString());
-            //transaction.SetTag("p3-y-coord", this.yCoord.ToString());
             transaction.SetTag("p3-user-email", this.userEmail);
             transaction.SetTag("p3-wallet-address", this.walletAddress);
             transaction.SetTag("p3-app-package-name", Application.identifier);
+            this.customizedTags.Add("p3-request-id", this.requestId);
+            this.customizedTags.Add("p3-api-key", PersonaAdSDK.GetApiKey());
+            this.customizedTags.Add("p3-current-environment", currentEnvironment.ToString());
+            this.customizedTags.Add("p3-ad-unit-id", this.adUnitId);
+            this.customizedTags.Add("p3-user-email", this.userEmail);
+            this.customizedTags.Add("p3-wallet-address", this.walletAddress);
+            this.customizedTags.Add("p3-app-package-name", Application.identifier);
 
             if (currentEnvironment != Environment.STAGING) this._adEventService.SendAdRequestedEvent(transaction);
 
@@ -73,18 +75,25 @@ namespace IO.Persona.MobileAds.Unity
                 ISpan fetchCreativeSpan = transaction.StartChild("fetch_creative", "Fetch Creative");
                 SentrySdk.AddBreadcrumb(message: "Fetching Creative", category: "sdk.milestone", level: BreadcrumbLevel.Info);
                 FetchCreativeApiResponse fetchedCreative = await TriggerFetchCreative(ipAddress);
+
                 transaction.SetTag("p3-creative-id", fetchedCreative.data?.id);
                 transaction.SetTag("p3-creative-media-url", fetchedCreative.data?.mediaUrl);
                 transaction.SetTag("p3-creative-cta-url", fetchedCreative.data?.ctaUrl);
                 transaction.SetTag("p3-creative-width", fetchedCreative.data?.dimensions?.width.ToString());
                 transaction.SetTag("p3-creative-height", fetchedCreative.data?.dimensions?.height.ToString());
+                this.customizedTags.Add("p3-creative-id", fetchedCreative.data?.id);
+                this.customizedTags.Add("p3-creative-media-url", fetchedCreative.data?.mediaUrl);
+                this.customizedTags.Add("p3-creative-cta-url", fetchedCreative.data?.ctaUrl);
+                this.customizedTags.Add("p3-creative-width", fetchedCreative.data?.dimensions?.width.ToString());
+                this.customizedTags.Add("p3-creative-height", fetchedCreative.data?.dimensions?.height.ToString());
+
                 fetchCreativeSpan.Finish();
 
                 TriggerFetchCreativeResponseHandler(fetchedCreative, (Environment)currentEnvironment, transaction);
             }
             catch (Exception e)
             {
-                SentrySdk.CaptureException(e, (scope) => scope.Transaction = transaction);
+                this.SendExceptionToSentry(e, transaction, this.customizedTags, "LoadAd function");
                 transaction.Finish();
                 TriggerFetchCreativeErrorHandler(e);
             }
@@ -147,7 +156,8 @@ namespace IO.Persona.MobileAds.Unity
             }
             catch (Exception e)
             {
-                SentrySdk.CaptureException(e, (scope) => scope.Transaction = transaction);
+                this.SendExceptionToSentry(e, transaction, this.customizedTags, "TriggerFetchCreativeResponseHandler function - Outer Exception");
+                //SentrySdk.CaptureException(e, (scope) => scope.Transaction = transaction);
 
                 if (currentEnvironment != Environment.STAGING)
                 {
@@ -160,7 +170,8 @@ namespace IO.Persona.MobileAds.Unity
                     }
                     catch (Exception e2)
                     {
-                        SentrySdk.CaptureException(e2, (scope) => scope.Transaction = transaction);
+                        this.SendExceptionToSentry(e2, transaction, this.customizedTags, "TriggerFetchCreativeResponseHandler function - Inner Exception");
+                        //SentrySdk.CaptureException(e2, (scope) => scope.Transaction = transaction);
                         renderBannerAdSpan.Finish();
                         transaction.Finish();
                     }
@@ -183,9 +194,13 @@ namespace IO.Persona.MobileAds.Unity
         {
             try
             {
+                SentrySdk.AddBreadcrumb(message: "Beginning RenderFetchedCreative", category: "sdk.milestone", level: BreadcrumbLevel.Info);
                 Canvas canvas = this.parent.GetComponentInParent<Canvas>();
+                SentrySdk.AddBreadcrumb(message: $"canvas- {canvas}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
                 GameObject rawImageGO = this.parent.gameObject;
-                RawImage rawImage = rawImageGO.GetComponent<RawImage>();
+                SentrySdk.AddBreadcrumb(message: $"rawImageGO- {rawImageGO}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+                RawImage rawImageComponent = rawImageGO.GetComponent<RawImage>();
+                SentrySdk.AddBreadcrumb(message: $"rawImageComponent- {rawImageComponent}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
 
                 string mediaUrl = fetchedCreative.data.mediaUrl;
 
@@ -193,23 +208,21 @@ namespace IO.Persona.MobileAds.Unity
 
                 if (mediaUrlParts[mediaUrlParts.Length - 1].Contains("gif"))
                 {
-                    //rawImage.rectTransform.anchoredPosition = new Vector2(this.xCoord, this.yCoord);
+                    byte[] gifBytes = await Util.DownloadGifFromUrl(mediaUrl);
 
-                    List<(Texture2D, float)> textureImages = await Util.DownloadGifFromUrl(mediaUrl);
-                    parent.StartCoroutine(Util.PlayGifAnimation(textureImages, rawImage));
+                    List<(Texture2D, float)> textureImages = Util.SplitGifIntoFrames(gifBytes);
+                    parent.StartCoroutine(Util.PlayGifAnimation(textureImages, rawImageComponent));
+                    DisplayPersonaTag(rawImageComponent);
                 }
                 else
                 {
                     Texture2D imageTexture = await Util.DownloadImageFromUrl(mediaUrl);
 
-                    rawImage.texture = imageTexture;
-
-                    //rawImage.rectTransform.sizeDelta = new Vector2(imageSprite.rect.width, imageSprite.rect.height);
-                    //rawImage.rectTransform.anchoredPosition = new Vector2(this.xCoord, this.yCoord);
+                    rawImageComponent.texture = imageTexture;
                 }
                 try
                 {
-                    TrackVisibilityOnScreen(fetchedCreative, rawImage, canvas);
+                    TrackVisibilityOnScreen(fetchedCreative, rawImageComponent, canvas);
 
                     Button button = rawImageGO.AddComponent<Button>();
                     button.onClick.AddListener(() =>
@@ -220,16 +233,84 @@ namespace IO.Persona.MobileAds.Unity
                 }
                 catch (Exception e2)
                 {
-                    SentrySdk.CaptureException(e2, (scope) => scope.Transaction = transaction);
+                    this.SendExceptionToSentry(e2, transaction, this.customizedTags, "RenderFetchedCreative function - Inner Exception");
+                    //SentrySdk.CaptureException(e2, (scope) => scope.Transaction = transaction);
                 }
 
-                return rawImage;
+                return rawImageComponent;
             }
             catch (Exception e)
             {
                 throw e;
             }
 
+        }
+
+        private async void DisplayPersonaTag(RawImage rawImageComponent)
+        {
+            try
+            {
+                GameObject watermarkImageGO = new GameObject("WatermarkImage");
+                watermarkImageGO.transform.SetParent(rawImageComponent.gameObject.transform);
+                RawImage watermarkImageComponent = watermarkImageGO.AddComponent<RawImage>();
+                
+                watermarkImageComponent.texture = await Util.DownloadImageFromUrl(Constants.WATERMARK_PERSONA_LOGO);
+                CanvasScaler canvasScaler = rawImageComponent.canvas.GetComponent<CanvasScaler>();
+                float referenceResolutionScaleFactor = 1f;
+                if (canvasScaler != null && canvasScaler.referenceResolution != null)
+                {
+                    referenceResolutionScaleFactor = (canvasScaler.referenceResolution.x / Constants.REFERENCE_RESOLUTON_X + canvasScaler.referenceResolution.y / Constants.REFERENCE_RESOLUTON_Y) / 2;
+                }
+                watermarkImageComponent.rectTransform.sizeDelta = new Vector2(Constants.WATERMARK_IMAGE_WIDTH * referenceResolutionScaleFactor * rawImageComponent.canvas.scaleFactor, Constants.WATERMARK_IMAGE_HEIGHT * referenceResolutionScaleFactor * rawImageComponent.canvas.scaleFactor);
+                watermarkImageComponent.rectTransform.anchorMin = new Vector2(1f, 1f);
+                watermarkImageComponent.rectTransform.anchorMax = new Vector2(1f, 1f);
+                watermarkImageComponent.rectTransform.pivot = new Vector2(1f, 1f);
+                watermarkImageComponent.rectTransform.anchoredPosition = new Vector2(0, 0);
+
+                GameObject watermarkBackgroundGO = new GameObject("WatermarkBackground");
+                watermarkBackgroundGO.transform.SetParent(rawImageComponent.gameObject.transform);
+                Image watermarkBackground = watermarkBackgroundGO.AddComponent<Image>();
+                watermarkBackground.color = new Color(0, 0, 0, 0.4f);
+                watermarkBackground.rectTransform.anchorMin = watermarkImageComponent.rectTransform.anchorMin;
+                watermarkBackground.rectTransform.anchorMax = watermarkImageComponent.rectTransform.anchorMax;
+                watermarkBackground.rectTransform.pivot = watermarkImageComponent.rectTransform.pivot;
+                watermarkBackground.rectTransform.sizeDelta = watermarkImageComponent.rectTransform.sizeDelta;
+                watermarkBackground.rectTransform.anchoredPosition = watermarkImageComponent.rectTransform.anchoredPosition;
+
+                GameObject watermarkTextGO = new GameObject("WatermarkText");
+                watermarkTextGO.transform.SetParent(rawImageComponent.gameObject.transform);
+                Text watermarkTextComponent = watermarkTextGO.AddComponent<Text>();
+                watermarkTextComponent.text = Constants.WATERMARK_TEXT;
+                watermarkTextComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                watermarkTextComponent.fontSize = (int) (Constants.WATERMARK_TEXT_FONT_SIZE * referenceResolutionScaleFactor * rawImageComponent.canvas.scaleFactor);
+                watermarkTextComponent.horizontalOverflow = HorizontalWrapMode.Overflow;
+                watermarkTextComponent.verticalOverflow = VerticalWrapMode.Overflow;
+                ContentSizeFitter contentSizeFitter = watermarkTextGO.AddComponent<ContentSizeFitter>();
+                contentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+                contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+                watermarkTextComponent.rectTransform.sizeDelta = new Vector2(watermarkTextComponent.preferredWidth, watermarkTextComponent.preferredHeight);
+                watermarkTextComponent.rectTransform.anchorMin = new Vector2(1f, 1f);
+                watermarkTextComponent.rectTransform.anchorMax = new Vector2(1f, 1f);
+                watermarkTextComponent.rectTransform.pivot = new Vector2(1f, 1f);
+                watermarkTextComponent.rectTransform.anchoredPosition = new Vector2(0, 0);
+                watermarkTextGO.SetActive(false);
+
+                Button watermarkButton = watermarkBackgroundGO.AddComponent<Button>();
+                watermarkButton.onClick.AddListener(() =>
+                {
+                    watermarkImageGO.SetActive(false);
+                    watermarkTextGO.SetActive(true);
+                    watermarkBackground.rectTransform.sizeDelta = watermarkTextComponent.rectTransform.sizeDelta;
+                    watermarkBackground.rectTransform.anchoredPosition = watermarkTextComponent.rectTransform.anchoredPosition;
+                    watermarkBackground.rectTransform.anchorMin = watermarkTextComponent.rectTransform.anchorMin;
+                    watermarkBackground.rectTransform.anchorMax = watermarkTextComponent.rectTransform.anchorMax;
+                    watermarkBackground.rectTransform.pivot = watermarkTextComponent.rectTransform.pivot = new Vector2(1f, 1f);
+                });
+            }
+            catch (Exception e)
+            {
+                SentrySdk.CaptureException(e);
+            }
         }
 
         private async Task<RawImage> RenderFallbackMedia(FetchCreativeApiResponse fetchedCreative, ISpan renderBannerAdSpan)
@@ -247,9 +328,6 @@ namespace IO.Persona.MobileAds.Unity
 
                 rawImage.texture = imageTexture;
 
-                //rawImage.rectTransform.sizeDelta = new Vector2(imageSprite.rect.width, imageSprite.rect.height);
-                //rawImage.rectTransform.anchoredPosition = new Vector2(this.xCoord, this.yCoord);
-
                 renderFallbackImageSpan.Finish();
 
                 Button button = rawImageGO.AddComponent<Button>();
@@ -265,6 +343,7 @@ namespace IO.Persona.MobileAds.Unity
 
         private void TrackVisibilityOnScreen(FetchCreativeApiResponse fetchedCreative, RawImage rawImage, Canvas canvas)
         {
+            SentrySdk.AddBreadcrumb(message: "Beginning TrackVisibilityOnScreen", category: "sdk.milestone", level: BreadcrumbLevel.Info);
             float visiblePercentage = ViewVisibilityOnScreen.GetVisiblePercentage(rawImage.rectTransform, canvas);
             bool isInstantImpressionTriggered = false;
             bool isDelayedImpressionTriggered = false;
@@ -328,6 +407,16 @@ namespace IO.Persona.MobileAds.Unity
                         delayedCoroutine = null;
                     }
                 }
+            });
+        }
+
+        private void SendExceptionToSentry(Exception error, ITransaction transaction, Dictionary<string, string> tags, string eventName)
+        {
+            SentrySdk.CaptureException(error, (scope) =>
+            {
+                scope.Transaction = transaction;
+                scope.AddBreadcrumb(new Breadcrumb(message: $"Exception triggered by- {eventName}", type: "error", level: BreadcrumbLevel.Error));
+                scope.SetTags(tags);
             });
         }
     }

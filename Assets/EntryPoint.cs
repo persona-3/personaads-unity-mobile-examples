@@ -9,7 +9,7 @@ public class EntryPoint : MonoBehaviour
     void Start()
     {
         PersonaAdSDK.Initialize();
-        BannerView bannerView = new BannerView(this, "a6280861-fb15-466d-8a0d-9e82f0e4ffa0");
+        BannerView bannerView = new BannerView(this, "5470eef5-da8a-40d8-8e0f-a50882844770");
 
         bannerView.SetWalletAddress("0xYourWalletAddress"); // Example wallet address - Optional field
         bannerView.SetUserEmail("sample.email@example.com"); // Example user email - Optional field

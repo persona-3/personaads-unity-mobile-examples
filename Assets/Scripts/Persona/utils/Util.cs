@@ -62,8 +62,10 @@ namespace IO.Persona.MobileAds.Unity
 
         public static async Task<Texture2D> DownloadImageFromUrl(string mediaUrl)
         {
+            SentrySdk.AddBreadcrumb(message: "Beginning DownloadImageFromUrl", category: "sdk.milestone", level: BreadcrumbLevel.Info);
             using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(mediaUrl))
             {
+                SentrySdk.AddBreadcrumb(message: $"DownloadImageFromUrl url - {mediaUrl}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
                 var asyncOperation = request.SendWebRequest();
                 while (!asyncOperation.isDone)
                 {
@@ -72,8 +74,9 @@ namespace IO.Persona.MobileAds.Unity
 
                 if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
                 {
-                    Debug.LogError("Image download error: " + request.error);
-                    return null;
+                    throw new Exception(request.error);
+                    //Debug.LogError("Image download error: " + request.error);
+                    //return null;
                 }
                 else
                 {
@@ -83,11 +86,13 @@ namespace IO.Persona.MobileAds.Unity
             }
         }
 
-        public static async Task<List<(Texture2D, float)>> DownloadGifFromUrl(string url)
+        public static async Task<byte[]> DownloadGifFromUrl(string url)
         {
+            SentrySdk.AddBreadcrumb(message: "Beginning DownloadGifFromUrl", category: "sdk.milestone", level: BreadcrumbLevel.Info);
             using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
 
             {
+                SentrySdk.AddBreadcrumb(message: $"DownloadGifFromUrl url - {url}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
                 UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
 
                 while (!asyncOperation.isDone)
@@ -97,56 +102,54 @@ namespace IO.Persona.MobileAds.Unity
 
                 if (webRequest.result != UnityWebRequest.Result.Success)
                 {
-                    Debug.LogError("Error: " + webRequest.error);
-                    return null;
+                    throw new Exception(webRequest.error);
+                    //SentrySdk.CaptureException(new Exception(webRequest.error));
+                    //Debug.LogError("Error: " + webRequest.error);
+                    //return null;
                 }
                 else
                 {
                     byte[] gifBytes = webRequest.downloadHandler.data;
-                    SimpleGif.Gif gif = SimpleGif.Gif.Decode(gifBytes);
+                    SentrySdk.AddBreadcrumb(message: $"gifBytes- {gifBytes}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
 
-                    // Convert the GIF frames into Unity sprites
-                    List<(Texture2D, float)> textureFrames = new List<(Texture2D, float)>();
-                    foreach (var frame in gif.Frames)
-                    {
-                        Texture2D texture = new Texture2D(frame.Texture.width, frame.Texture.height);
-                        SimpleGif.Data.Color32[] frameColors = frame.Texture.GetPixels32();
-
-                        // Convert color data to Unity format
-                        Color32[] convertedColors = new Color32[frame.Texture.GetPixels32().Length];
-                        for (int i = 0; i < frameColors.Length; i++)
-                        {
-                            convertedColors[i] = new Color32(
-                                frameColors[i].r,
-                                frameColors[i].g,
-                                frameColors[i].b,
-                                frameColors[i].a
-                                );
-                        }
-
-                        texture.SetPixels32(convertedColors);
-                        texture.Apply();
-
-                        float delayInSeconds = frame.Delay;
-
-                        //Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * 0.5f);
-                        textureFrames.Add((texture, delayInSeconds));
-                    }
-                    return textureFrames;
+                    return gifBytes;
                 }
             }
         }
 
+        public static List<(Texture2D texture, float delay)> SplitGifIntoFrames(byte[] gifBytes)
+        {
+            SentrySdk.AddBreadcrumb(message: "Beginning SplitGifIntoFrames", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+            List<(Texture2D, float)> mFrames = new List<(Texture2D, float)>();
+
+            using (var decoder = new MG.GIF.Decoder(gifBytes))
+            {
+                SentrySdk.AddBreadcrumb(message: $"decoder- {decoder}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+                var img = decoder.NextImage();
+                SentrySdk.AddBreadcrumb(message: $"img- {img}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+                while (img != null)
+                {
+                    mFrames.Add((img.CreateTexture(), img.Delay / 1000.0f));
+                    img = decoder.NextImage();
+                }
+            }
+            SentrySdk.AddBreadcrumb(message: $"mFrames length- {mFrames.Count}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+            return mFrames;
+        }
+
         public static IEnumerator PlayGifAnimation(List<(Texture2D texture, float delay)> textures, RawImage rawImage)
         {
+            SentrySdk.AddBreadcrumb(message: "Beginning PlayGifAnimation", category: "sdk.milestone", level: BreadcrumbLevel.Info);
             int currentFrameIndex = 0;
+            if (textures != null && textures.Count > 0) SentrySdk.AddBreadcrumb(message: $"textures[0]- {textures[0]}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+            else SentrySdk.AddBreadcrumb(message: $"textures- {textures}");
+            SentrySdk.AddBreadcrumb(message: $"rawImage- {rawImage}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
 
             while (true)
             {
                 var frameData = textures[currentFrameIndex];
 
                 rawImage.texture = frameData.texture;
-                //rawImage.rectTransform.sizeDelta = new Vector2(frameData.sprite.rect.width, frameData.sprite.rect.height);
 
                 currentFrameIndex = (currentFrameIndex + 1) % textures.Count;
 

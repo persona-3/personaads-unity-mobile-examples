@@ -27,6 +27,7 @@ namespace IO.Persona.MobileAds.Unity
             string url = "https://jsonip.com";
             using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
             {
+                // SentrySdk.AddBreadcrumb(message: $"GetIpAddress url - {url}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
                 UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
 
                 while (!asyncOperation.isDone)

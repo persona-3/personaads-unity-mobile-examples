@@ -29,17 +29,17 @@ MonoBehaviour:
   <EnvironmentOverride>k__BackingField: 
   <AttachStacktrace>k__BackingField: 0
   <AttachScreenshot>k__BackingField: 1
-  <ScreenshotQuality>k__BackingField: 1
-  <ScreenshotCompression>k__BackingField: 75
+  <ScreenshotQuality>k__BackingField: 3
+  <ScreenshotCompression>k__BackingField: 100
   <AttachViewHierarchy>k__BackingField: 0
   <MaxViewHierarchyRootObjects>k__BackingField: 100
   <MaxViewHierarchyObjectChildCount>k__BackingField: 20
   <MaxViewHierarchyDepth>k__BackingField: 10
-  <BreadcrumbsForLogs>k__BackingField: 1
-  <BreadcrumbsForWarnings>k__BackingField: 1
-  <BreadcrumbsForAsserts>k__BackingField: 1
-  <BreadcrumbsForErrors>k__BackingField: 1
-  <BreadcrumbsForExceptions>k__BackingField: 1
+  <BreadcrumbsForLogs>k__BackingField: 0
+  <BreadcrumbsForWarnings>k__BackingField: 0
+  <BreadcrumbsForAsserts>k__BackingField: 0
+  <BreadcrumbsForErrors>k__BackingField: 0
+  <BreadcrumbsForExceptions>k__BackingField: 0
   <MaxBreadcrumbs>k__BackingField: 100
   <ReportAssembliesMode>k__BackingField: 1
   <SendDefaultPii>k__BackingField: 1
