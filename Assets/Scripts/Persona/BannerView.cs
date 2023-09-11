@@ -212,7 +212,6 @@ namespace IO.Persona.MobileAds.Unity
 
                     List<(Texture2D, float)> textureImages = Util.SplitGifIntoFrames(gifBytes);
                     parent.StartCoroutine(Util.PlayGifAnimation(textureImages, rawImageComponent));
-                    DisplayPersonaTag(rawImageComponent);
                 }
                 else
                 {
@@ -220,6 +219,7 @@ namespace IO.Persona.MobileAds.Unity
 
                     rawImageComponent.texture = imageTexture;
                 }
+                DisplayPersonaTag(rawImageComponent);
                 try
                 {
                     TrackVisibilityOnScreen(fetchedCreative, rawImageComponent, canvas);
