@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Text;
 using System;
+using Sentry;
 
 namespace IO.Persona.MobileAds.Unity
 {
@@ -43,6 +44,7 @@ namespace IO.Persona.MobileAds.Unity
                     webRequest.SetRequestHeader(header.Key, header.Value);
                 }
 
+                SentrySdk.AddBreadcrumb(message: $"MakeGetRequestAsync url - {url}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
                 UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
 
                 while (!asyncOperation.isDone)
@@ -92,7 +94,7 @@ namespace IO.Persona.MobileAds.Unity
                 {
                     webRequest.SetRequestHeader(header.Key, header.Value);
                 }
-
+                SentrySdk.AddBreadcrumb(message: $"MakePostRequestAsync url - {url}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
                 UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
 
                 while (!asyncOperation.isDone)
