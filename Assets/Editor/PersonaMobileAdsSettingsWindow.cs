@@ -18,7 +18,7 @@ namespace IO.Persona.MobileAds.Unity
             config = Resources.Load<PersonaAdSDKConfig>("Persona/PersonaAdSDKConfig");
             if (config == null)
             {
-                config = PersonaAdSDKConfig.CreateConfig();
+                config = PersonaAdSDKConfig.CreateConfig(Constants.CONFIG_ASSET_RESOURCE_DIR_PATH);
 
                 if (config == null)
                 {

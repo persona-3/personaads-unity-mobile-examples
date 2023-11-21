@@ -8,13 +8,18 @@ using Sentry;
 
 namespace IO.Persona.MobileAds.Unity
 {
-    public class APIClient
+    public interface IAPIClient
     {
+        Task<string> MakeGetRequestAsync(string url, Dictionary<string, string> queryParams, Dictionary<string, string> headers);
+        Task<string> MakePostRequestAsync(string url, string postData, Dictionary<string, string> queryParams, Dictionary<string, string> headers);
+        Task<Texture2D> DownloadImageFromUrl(string mediaUrl);
+        Task<byte[]> DownloadGifFromUrl(string url);
 
-        public APIClient()
-        {
+    }
 
-        }
+    public class APIClient: IAPIClient
+    {
+        public APIClient() { }
 
 
         public async Task<string> MakeGetRequestAsync(string url, Dictionary<string, string> queryParams, Dictionary<string, string> headers)
@@ -33,11 +38,7 @@ namespace IO.Persona.MobileAds.Unity
             using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
 
             {
-
                 headers ??= new Dictionary<string, string>();
-
-                headers.Add("x-api-key", PersonaAdSDK.GetApiKey());
-                headers.Add("Package-Name", Application.identifier);
 
                 foreach (var header in headers)
                 {
@@ -64,7 +65,6 @@ namespace IO.Persona.MobileAds.Unity
             }
         }
 
-
         public async Task<string> MakePostRequestAsync(string url, string postData, Dictionary<string, string> queryParams, Dictionary<string, string> headers)
         {
             // Construct the query parameters
@@ -87,8 +87,6 @@ namespace IO.Persona.MobileAds.Unity
                 headers ??= new Dictionary<string, string>();
 
                 headers.Add("Content-Type", "application/json");
-                headers.Add("x-api-key", PersonaAdSDK.GetApiKey());
-                headers.Add("Package-Name", Application.identifier);
 
                 foreach (var header in headers)
                 {
@@ -110,6 +108,63 @@ namespace IO.Persona.MobileAds.Unity
                 {
                     string response = webRequest.downloadHandler.text;
                     return response;
+                }
+            }
+        }
+
+        public async Task<Texture2D> DownloadImageFromUrl(string mediaUrl)
+        {
+            SentrySdk.AddBreadcrumb(message: "Beginning DownloadImageFromUrl", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+            using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(mediaUrl))
+            {
+                SentrySdk.AddBreadcrumb(message: $"DownloadImageFromUrl url - {mediaUrl}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+                var asyncOperation = request.SendWebRequest();
+                while (!asyncOperation.isDone)
+                {
+                    await Task.Yield(); // Yield to prevent blocking the main thread
+                }
+
+                if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
+                {
+                    throw new Exception(request.error);
+                    //Debug.LogError("Image download error: " + request.error);
+                    //return null;
+                }
+                else
+                {
+                    Texture2D downloadedTexture = DownloadHandlerTexture.GetContent(request);
+                    return downloadedTexture;
+                }
+            }
+        }
+
+        public async Task<byte[]> DownloadGifFromUrl(string url)
+        {
+            SentrySdk.AddBreadcrumb(message: "Beginning DownloadGifFromUrl", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
+
+            {
+                SentrySdk.AddBreadcrumb(message: $"DownloadGifFromUrl url - {url}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+                UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
+
+                while (!asyncOperation.isDone)
+                {
+                    await Task.Yield();
+                }
+
+                if (webRequest.result != UnityWebRequest.Result.Success)
+                {
+                    throw new Exception(webRequest.error);
+                    //SentrySdk.CaptureException(new Exception(webRequest.error));
+                    //Debug.LogError("Error: " + webRequest.error);
+                    //return null;
+                }
+                else
+                {
+                    byte[] gifBytes = webRequest.downloadHandler.data;
+                    SentrySdk.AddBreadcrumb(message: $"gifBytes- {gifBytes}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+
+                    return gifBytes;
                 }
             }
         }

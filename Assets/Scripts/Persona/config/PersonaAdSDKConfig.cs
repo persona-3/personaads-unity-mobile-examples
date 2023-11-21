@@ -8,11 +8,11 @@ namespace IO.Persona.MobileAds.Unity
         public string apiKey = "";
         public string environment = "";
 
-        public static PersonaAdSDKConfig? CreateConfig()
+        public static PersonaAdSDKConfig? CreateConfig(string folderPath)
         {
             PersonaAdSDKConfig config = null;
 #if UNITY_EDITOR
-            string folderPath = "Assets/Resources/Persona";
+            //string folderPath = "Assets/Resources/Persona";
             // Ensure that the parent directory exists
             if (!Directory.Exists(folderPath))
             {
