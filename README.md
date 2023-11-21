@@ -11,11 +11,11 @@ Register your app in the Persona platform by completing the following steps:
 
 ## Download the Mobile Ads Unity package
 
-Use this link to download the Unity package- [Download](https://github.com/persona-3/personaads-unity-mobile-examples/releases/download/v0.0.4/io.persona3.mobileads-v0.0.4.unitypackage)
+Use this link to download the Unity package- [Download](https://github.com/persona-3/personaads-unity-mobile-examples/releases/download/v0.0.6/io.persona3.mobileads-v0.0.6.unitypackage)
 
 ## Import the Mobile Ads Unity package
 
-To import the package, open your project in the Unity editor, select **Assets > Import Package > Custom Package**, and find the _io.persona3.mobileads-v0.0.4.unitypackage_ file you downloaded. Make sure all of the files are selected and click Import.
+To import the package, open your project in the Unity editor, select **Assets > Import Package > Custom Package**, and find the _io.persona3.mobileads-v0.0.6.unitypackage_ file you downloaded. Make sure all of the files are selected and click Import.
 
 ## Include external dependencies
 
