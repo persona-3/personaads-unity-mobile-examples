@@ -4,18 +4,26 @@ using UnityEngine;
 
 namespace IO.Persona.MobileAds.Unity
 {
-    public class PersonaAdSDK
+    public interface IPersonaAdSDK
+    {
+        string GetApiKey();
+        Environment? GetEnvironment();
+    }
+
+    public class PersonaAdSDK: IPersonaAdSDK
     {
         private static string apiKey = null;
         private static Environment? environment = null;
         private static PersonaAdSDKConfig config;
 
-        public static string GetApiKey()
+        public PersonaAdSDK() { }
+
+        public string GetApiKey()
         {
             return apiKey;
         }
 
-        public static Environment? GetEnvironment()
+        public Environment? GetEnvironment()
         {
             return environment;
         }
@@ -27,7 +35,7 @@ namespace IO.Persona.MobileAds.Unity
                 config = Resources.Load<PersonaAdSDKConfig>("Persona/PersonaAdSDKConfig");
                 if (config == null)
                 {
-                    config = PersonaAdSDKConfig.CreateConfig();
+                    config = PersonaAdSDKConfig.CreateConfig(Constants.CONFIG_ASSET_RESOURCE_DIR_PATH);
 
                     if (config == null)
                     {

@@ -1,15 +1,26 @@
 ﻿using System;
 using UnityEngine;
 using System.Threading.Tasks;
-using UnityEngine.Networking;
 using Sentry;
 using System.Text.RegularExpressions;
 
 namespace IO.Persona.MobileAds.Unity
 {
-    public class ClientDevice
+    public interface IClientDevice
     {
-        public async static Task<DeviceMetadata> GetDeviceMetadata()
+        Task<DeviceMetadata> GetDeviceMetadata();
+    }
+
+    public class ClientDevice: IClientDevice
+    {
+        private IAPIClient _apiclient;
+
+        public ClientDevice(IAPIClient apiClient)
+        {
+            _apiclient = apiClient;
+        }
+
+        public async Task<DeviceMetadata> GetDeviceMetadata()
         {
             string ipAddress = await GetIpAddress();
             string userAgent = GetUserAgent();
@@ -22,34 +33,22 @@ namespace IO.Persona.MobileAds.Unity
             return deviceMetadata;
         }
 
-        private async static Task<string> GetIpAddress()
+        private async Task<string> GetIpAddress()
         {
-            string url = "https://jsonip.com";
-            using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
+            try
             {
-                // SentrySdk.AddBreadcrumb(message: $"GetIpAddress url - {url}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
-                UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
-
-                while (!asyncOperation.isDone)
-                {
-                    await Task.Yield();
-                }
-
-                if (webRequest.result != UnityWebRequest.Result.Success)
-                {
-                    SentrySdk.CaptureException(new Exception(webRequest.error));
-                    return "";
-                }
-                else
-                {
-                    string response = webRequest.downloadHandler.text;
-                    JsonIpApiResponse responseObj = JsonUtility.FromJson<JsonIpApiResponse>(response);
-                    return responseObj.ip;
-                }
+                string response = await _apiclient.MakeGetRequestAsync(Constants.JSON_IP_URL, null, null);
+                JsonIpApiResponse responseObj = JsonUtility.FromJson<JsonIpApiResponse>(response);
+                return responseObj.ip;
+            }
+            catch(Exception e)
+            {
+                SentrySdk.CaptureException(e);
+                return "";
             }
         }
 
-        private static string GetUserAgent()
+        private string GetUserAgent()
         {
             string platform;
             string browser = "Unity";
@@ -87,7 +86,7 @@ namespace IO.Persona.MobileAds.Unity
             return userAgent;
         }
 
-        private static BrowserInfo GetBrowserInfo()
+        private BrowserInfo GetBrowserInfo()
         {
             string operatingSystem = SystemInfo.operatingSystem;
 

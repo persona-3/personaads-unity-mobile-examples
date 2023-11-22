@@ -16,13 +16,31 @@ namespace IO.Persona.MobileAds.Unity
         private string requestId = "";
         private readonly MonoBehaviour parent;
         Dictionary<string, string> customizedTags = new Dictionary<string, string>();
-
-        AdEventService _adEventService;
+        private IAPIClient _apiClient;
+        private ClientDevice _clientDevice;
+        private IAdEventService _adEventService;
+        private IPersonaAdSDK _personaAdSDK;
 
         public BannerView(MonoBehaviour parent, string adUnitId)
         {
             this.adUnitId = adUnitId;
             this.parent = parent;
+            _apiClient = new APIClient();
+            _clientDevice = new ClientDevice(_apiClient);
+            _personaAdSDK = new PersonaAdSDK();
+            requestId = Util.GenerateRequestId();
+            _adEventService = new AdEventService(requestId, this.adUnitId, walletAddress, userEmail, _apiClient, _clientDevice, _personaAdSDK);
+        }
+
+        public BannerView(MonoBehaviour parent, string adUnitId, IPersonaAdSDK personaAdSDK, IAPIClient apiClient, IAdEventService adEventService)
+        {
+            this.adUnitId = adUnitId;
+            this.parent = parent;
+            _personaAdSDK = personaAdSDK;
+            _apiClient = apiClient;
+            _clientDevice = new ClientDevice(_apiClient);
+            requestId = Util.GenerateRequestId();
+            _adEventService = adEventService;
         }
 
         public void SetUserEmail(string userEmail)
@@ -35,35 +53,43 @@ namespace IO.Persona.MobileAds.Unity
             this.walletAddress = walletAddress;
         }
 
+        public string GetUserEmail()
+        {
+            return userEmail;
+        }
+
+        public string GetWalletAddress()
+        {
+            return walletAddress;
+        }
+
         public async void LoadAd()
         {
             SentrySdk.AddBreadcrumb(message: "loadAd Called", category: "sdk.milestone", level: BreadcrumbLevel.Info);
             ITransaction transaction = SentrySdk.StartTransaction("LoadBannerAd", "banner_ad.load");
 
-            Environment? currentEnvironment = PersonaAdSDK.GetEnvironment();
-            if (!Util.IsCredentialsValid(currentEnvironment, this.adUnitId)) return;
+            Environment? currentEnvironment = _personaAdSDK.GetEnvironment();
+            string apiKey = _personaAdSDK.GetApiKey();
+            if (!Util.IsCredentialsValid(apiKey, currentEnvironment, adUnitId)) return;
 
             SentrySdk.AddBreadcrumb(message: "null check completed", category: "sdk.milestone", level: BreadcrumbLevel.Info);
 
-            this.requestId = Util.GenerateRequestId();
-            this._adEventService = new AdEventService(this.requestId, this.adUnitId, this.walletAddress, this.userEmail, (Environment)currentEnvironment);
-
-            transaction.SetTag("p3-request-id", this.requestId);
-            transaction.SetTag("p3-api-key", PersonaAdSDK.GetApiKey());
+            transaction.SetTag("p3-request-id", requestId);
+            transaction.SetTag("p3-api-key", apiKey);
             transaction.SetTag("p3-current-environment", currentEnvironment.ToString());
-            transaction.SetTag("p3-ad-unit-id", this.adUnitId);
-            transaction.SetTag("p3-user-email", this.userEmail);
-            transaction.SetTag("p3-wallet-address", this.walletAddress);
+            transaction.SetTag("p3-ad-unit-id", adUnitId);
+            transaction.SetTag("p3-user-email", userEmail);
+            transaction.SetTag("p3-wallet-address", walletAddress);
             transaction.SetTag("p3-app-package-name", Application.identifier);
-            this.customizedTags.Add("p3-request-id", this.requestId);
-            this.customizedTags.Add("p3-api-key", PersonaAdSDK.GetApiKey());
-            this.customizedTags.Add("p3-current-environment", currentEnvironment.ToString());
-            this.customizedTags.Add("p3-ad-unit-id", this.adUnitId);
-            this.customizedTags.Add("p3-user-email", this.userEmail);
-            this.customizedTags.Add("p3-wallet-address", this.walletAddress);
-            this.customizedTags.Add("p3-app-package-name", Application.identifier);
+            customizedTags.Add("p3-request-id", requestId);
+            customizedTags.Add("p3-api-key", apiKey);
+            customizedTags.Add("p3-current-environment", currentEnvironment.ToString());
+            customizedTags.Add("p3-ad-unit-id", adUnitId);
+            customizedTags.Add("p3-user-email", userEmail);
+            customizedTags.Add("p3-wallet-address", walletAddress);
+            customizedTags.Add("p3-app-package-name", Application.identifier);
 
-            if (currentEnvironment != Environment.STAGING) this._adEventService.SendAdRequestedEvent(transaction);
+            if (currentEnvironment != Environment.STAGING) _adEventService.SendAdRequestedEvent(transaction);
 
             try
             {
@@ -81,11 +107,11 @@ namespace IO.Persona.MobileAds.Unity
                 transaction.SetTag("p3-creative-cta-url", fetchedCreative.data?.ctaUrl);
                 transaction.SetTag("p3-creative-width", fetchedCreative.data?.dimensions?.width.ToString());
                 transaction.SetTag("p3-creative-height", fetchedCreative.data?.dimensions?.height.ToString());
-                this.customizedTags.Add("p3-creative-id", fetchedCreative.data?.id);
-                this.customizedTags.Add("p3-creative-media-url", fetchedCreative.data?.mediaUrl);
-                this.customizedTags.Add("p3-creative-cta-url", fetchedCreative.data?.ctaUrl);
-                this.customizedTags.Add("p3-creative-width", fetchedCreative.data?.dimensions?.width.ToString());
-                this.customizedTags.Add("p3-creative-height", fetchedCreative.data?.dimensions?.height.ToString());
+                customizedTags.Add("p3-creative-id", fetchedCreative.data?.id);
+                customizedTags.Add("p3-creative-media-url", fetchedCreative.data?.mediaUrl);
+                customizedTags.Add("p3-creative-cta-url", fetchedCreative.data?.ctaUrl);
+                customizedTags.Add("p3-creative-width", fetchedCreative.data?.dimensions?.width.ToString());
+                customizedTags.Add("p3-creative-height", fetchedCreative.data?.dimensions?.height.ToString());
 
                 fetchCreativeSpan.Finish();
 
@@ -93,7 +119,7 @@ namespace IO.Persona.MobileAds.Unity
             }
             catch (Exception e)
             {
-                this.SendExceptionToSentry(e, transaction, this.customizedTags, "LoadAd function");
+                SendExceptionToSentry(e, transaction, customizedTags, "LoadAd function");
                 transaction.Finish();
                 TriggerFetchCreativeErrorHandler(e);
             }
@@ -105,21 +131,21 @@ namespace IO.Persona.MobileAds.Unity
         {
             try
             {
-                string apiUrl = $"{Util.GetBaseUrl(PersonaAdSDK.GetEnvironment())}/creatives";
+                string apiUrl = $"{Util.GetBaseUrl(_personaAdSDK.GetEnvironment())}/creatives";
                 Dictionary<string, string> headers = new Dictionary<string, string>
         {
-            { "x-request-id", this.requestId }
+            { "x-request-id", requestId },
+            { "x-api-key", _personaAdSDK.GetApiKey() },
+            { "Package-Name", Application.identifier }
         };
 
                 Dictionary<string, string> queryParams = new Dictionary<string, string>
         {
-            { "placementId", this.adUnitId },
+            { "placementId", adUnitId },
             { "ipAddress", ipAddress },
-            { "walletAddress", this.walletAddress },
-            { "userEmail", this.userEmail }
+            { "walletAddress", walletAddress },
+            { "userEmail", userEmail }
         };
-
-                APIClient _apiClient = new APIClient();
 
                 string response = await _apiClient.MakeGetRequestAsync(apiUrl, queryParams, headers);
                 FetchCreativeApiResponse apiResponse = JsonUtility.FromJson<FetchCreativeApiResponse>(response);
@@ -145,32 +171,32 @@ namespace IO.Persona.MobileAds.Unity
                 }
                 else
                 {
-                    this._adEventService.SendAdRequestCompletedEvent(fetchedCreative);
+                    _adEventService.SendAdRequestCompletedEvent(fetchedCreative);
                     ISpan renderActualImageSpan = renderBannerAdSpan.StartChild("render_actual_image", "Render Actual Image");
                     await RenderFetchedCreative(fetchedCreative, transaction);
                     renderActualImageSpan.Finish();
                     renderBannerAdSpan.Finish();
-                    this._adEventService.SendAdLoadCompletedEvent(fetchedCreative);
+                    _adEventService.SendAdLoadCompletedEvent(fetchedCreative);
                 }
                 transaction.Finish();
             }
             catch (Exception e)
             {
-                this.SendExceptionToSentry(e, transaction, this.customizedTags, "TriggerFetchCreativeResponseHandler function - Outer Exception");
+                SendExceptionToSentry(e, transaction, customizedTags, "TriggerFetchCreativeResponseHandler function - Outer Exception");
                 //SentrySdk.CaptureException(e, (scope) => scope.Transaction = transaction);
 
                 if (currentEnvironment != Environment.STAGING)
                 {
                     try
                     {
-                        this._adEventService.SendAdLoadFailedEvent(fetchedCreative, e);
+                        _adEventService.SendAdLoadFailedEvent(fetchedCreative, e);
                         await RenderFallbackMedia(fetchedCreative, renderBannerAdSpan);
                         renderBannerAdSpan.Finish();
                         transaction.Finish();
                     }
                     catch (Exception e2)
                     {
-                        this.SendExceptionToSentry(e2, transaction, this.customizedTags, "TriggerFetchCreativeResponseHandler function - Inner Exception");
+                        SendExceptionToSentry(e2, transaction, customizedTags, "TriggerFetchCreativeResponseHandler function - Inner Exception");
                         //SentrySdk.CaptureException(e2, (scope) => scope.Transaction = transaction);
                         renderBannerAdSpan.Finish();
                         transaction.Finish();
@@ -186,7 +212,7 @@ namespace IO.Persona.MobileAds.Unity
 
         private void TriggerFetchCreativeErrorHandler(Exception e)
         {
-            this._adEventService.SendAdRequestFailedEvent(e);
+            _adEventService.SendAdRequestFailedEvent(e);
         }
 
 
@@ -195,9 +221,9 @@ namespace IO.Persona.MobileAds.Unity
             try
             {
                 SentrySdk.AddBreadcrumb(message: "Beginning RenderFetchedCreative", category: "sdk.milestone", level: BreadcrumbLevel.Info);
-                Canvas canvas = this.parent.GetComponentInParent<Canvas>();
+                Canvas canvas = parent.GetComponentInParent<Canvas>();
                 SentrySdk.AddBreadcrumb(message: $"canvas- {canvas}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
-                GameObject rawImageGO = this.parent.gameObject;
+                GameObject rawImageGO = parent.gameObject;
                 SentrySdk.AddBreadcrumb(message: $"rawImageGO- {rawImageGO}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
                 RawImage rawImageComponent = rawImageGO.GetComponent<RawImage>();
                 SentrySdk.AddBreadcrumb(message: $"rawImageComponent- {rawImageComponent}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
@@ -208,14 +234,14 @@ namespace IO.Persona.MobileAds.Unity
 
                 if (mediaUrlParts[mediaUrlParts.Length - 1].Contains("gif"))
                 {
-                    byte[] gifBytes = await Util.DownloadGifFromUrl(mediaUrl);
+                    byte[] gifBytes = await _apiClient.DownloadGifFromUrl(mediaUrl);
 
                     List<(Texture2D, float)> textureImages = Util.SplitGifIntoFrames(gifBytes);
                     parent.StartCoroutine(Util.PlayGifAnimation(textureImages, rawImageComponent));
                 }
                 else
                 {
-                    Texture2D imageTexture = await Util.DownloadImageFromUrl(mediaUrl);
+                    Texture2D imageTexture = await _apiClient.DownloadImageFromUrl(mediaUrl);
 
                     rawImageComponent.texture = imageTexture;
                 }
@@ -227,13 +253,14 @@ namespace IO.Persona.MobileAds.Unity
                     Button button = rawImageGO.AddComponent<Button>();
                     button.onClick.AddListener(() =>
                     {
-                        this._adEventService.SendAdClickEvent(fetchedCreative);
-                        Application.OpenURL(fetchedCreative.data.ctaUrl);
+                        _adEventService.SendAdClickEvent(fetchedCreative);
+                        string targetUrl = Util.AppendQueryParam(fetchedCreative.data.ctaUrl, $"prsna_id={requestId}");
+                        Application.OpenURL(targetUrl);
                     });
                 }
                 catch (Exception e2)
                 {
-                    this.SendExceptionToSentry(e2, transaction, this.customizedTags, "RenderFetchedCreative function - Inner Exception");
+                    SendExceptionToSentry(e2, transaction, customizedTags, "RenderFetchedCreative function - Inner Exception");
                     //SentrySdk.CaptureException(e2, (scope) => scope.Transaction = transaction);
                 }
 
@@ -253,8 +280,8 @@ namespace IO.Persona.MobileAds.Unity
                 GameObject watermarkImageGO = new GameObject("WatermarkImage");
                 watermarkImageGO.transform.SetParent(rawImageComponent.gameObject.transform);
                 RawImage watermarkImageComponent = watermarkImageGO.AddComponent<RawImage>();
-                
-                watermarkImageComponent.texture = await Util.DownloadImageFromUrl(Constants.WATERMARK_PERSONA_LOGO);
+
+                watermarkImageComponent.texture = await _apiClient.DownloadImageFromUrl(Constants.WATERMARK_PERSONA_LOGO);
                 CanvasScaler canvasScaler = rawImageComponent.canvas.GetComponent<CanvasScaler>();
                 float referenceResolutionScaleFactor = 1f;
                 if (canvasScaler != null && canvasScaler.referenceResolution != null)
@@ -281,8 +308,9 @@ namespace IO.Persona.MobileAds.Unity
                 watermarkTextGO.transform.SetParent(rawImageComponent.gameObject.transform);
                 Text watermarkTextComponent = watermarkTextGO.AddComponent<Text>();
                 watermarkTextComponent.text = Constants.WATERMARK_TEXT;
-                watermarkTextComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                watermarkTextComponent.fontSize = (int) (Constants.WATERMARK_TEXT_FONT_SIZE * referenceResolutionScaleFactor * rawImageComponent.canvas.scaleFactor);
+                // watermarkTextComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                watermarkTextComponent.font = Resources.Load<Font>("PersonaFonts/Roboto-Regular");
+                watermarkTextComponent.fontSize = (int)(Constants.WATERMARK_TEXT_FONT_SIZE * referenceResolutionScaleFactor * rawImageComponent.canvas.scaleFactor);
                 watermarkTextComponent.horizontalOverflow = HorizontalWrapMode.Overflow;
                 watermarkTextComponent.verticalOverflow = VerticalWrapMode.Overflow;
                 ContentSizeFitter contentSizeFitter = watermarkTextGO.AddComponent<ContentSizeFitter>();
@@ -318,13 +346,13 @@ namespace IO.Persona.MobileAds.Unity
             ISpan renderFallbackImageSpan = renderBannerAdSpan.StartChild("render_fallback_image", "Render Fallback Image");
             try
             {
-                GameObject rawImageGO = this.parent.gameObject;
+                GameObject rawImageGO = parent.gameObject;
                 RawImage rawImage = rawImageGO.GetComponent<RawImage>();
 
                 int creativeWidth = fetchedCreative.data.dimensions.width;
                 int creativeHeight = fetchedCreative.data.dimensions.height;
 
-                Texture2D imageTexture = await Util.DownloadImageFromUrl(Util.GetFallbackImageUrl(creativeWidth, creativeHeight));
+                Texture2D imageTexture = await _apiClient.DownloadImageFromUrl(Util.GetFallbackImageUrl(creativeWidth, creativeHeight));
 
                 rawImage.texture = imageTexture;
 
@@ -344,7 +372,7 @@ namespace IO.Persona.MobileAds.Unity
         private void TrackVisibilityOnScreen(FetchCreativeApiResponse fetchedCreative, RawImage rawImage, Canvas canvas)
         {
             SentrySdk.AddBreadcrumb(message: "Beginning TrackVisibilityOnScreen", category: "sdk.milestone", level: BreadcrumbLevel.Info);
-            float visiblePercentage = ViewVisibilityOnScreen.GetVisiblePercentage(rawImage.rectTransform, canvas);
+            float visiblePercentage = ViewVisibilityOnScreen.GetVisiblePercentage(rawImage.rectTransform, canvas.GetComponent<RectTransform>());
             bool isInstantImpressionTriggered = false;
             bool isDelayedImpressionTriggered = false;
             Coroutine delayedCoroutine = null;
@@ -353,14 +381,15 @@ namespace IO.Persona.MobileAds.Unity
             {
                 yield return new WaitForSeconds(Constants.VISIBILITY_DURATION_THRESHOLD);
                 string triggeredAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-                this._adEventService.SendAdImpressionEvent(fetchedCreative, visiblePercentage, triggeredAt);
+                _adEventService.SendAdImpressionEvent(fetchedCreative, visiblePercentage, triggeredAt);
+                _adEventService.SendAdChargeableImpressionEvent(fetchedCreative, visiblePercentage, triggeredAt);
                 isDelayedImpressionTriggered = true;
             }
 
             if (visiblePercentage > 0 && !isInstantImpressionTriggered)
             {
                 string triggeredAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-                this._adEventService.SendAdImpressionEvent(fetchedCreative, visiblePercentage, triggeredAt);
+                _adEventService.SendAdImpressionEvent(fetchedCreative, visiblePercentage, triggeredAt);
                 isInstantImpressionTriggered = true;
             }
 
@@ -368,10 +397,10 @@ namespace IO.Persona.MobileAds.Unity
             {
                 if (delayedCoroutine != null)
                 {
-                    this.parent.StopCoroutine(delayedCoroutine);
+                    parent.StopCoroutine(delayedCoroutine);
                     delayedCoroutine = null;
                 }
-                delayedCoroutine = this.parent.StartCoroutine(VisibilityTimer());
+                delayedCoroutine = parent.StartCoroutine(VisibilityTimer());
             }
 
             ScrollRect scrollRect = rawImage.GetComponentInParent<ScrollRect>();
@@ -384,18 +413,18 @@ namespace IO.Persona.MobileAds.Unity
                     return;
                 }
 
-                visiblePercentage = ViewVisibilityOnScreen.GetVisiblePercentage(rawImage.rectTransform, canvas);
+                visiblePercentage = ViewVisibilityOnScreen.GetVisiblePercentage(rawImage.rectTransform, canvas.GetComponent<RectTransform>());
                 if (visiblePercentage > 0 && !isInstantImpressionTriggered)
                 {
                     string triggeredAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-                    this._adEventService.SendAdImpressionEvent(fetchedCreative, visiblePercentage, triggeredAt);
+                    _adEventService.SendAdImpressionEvent(fetchedCreative, visiblePercentage, triggeredAt);
                     isInstantImpressionTriggered = true;
                 }
                 if (visiblePercentage > Constants.VISIBILITY_THRESHOLD_PERCENTAGE && !isDelayedImpressionTriggered)
                 {
                     if (delayedCoroutine == null)
                     {
-                        delayedCoroutine = this.parent.StartCoroutine(VisibilityTimer());
+                        delayedCoroutine = parent.StartCoroutine(VisibilityTimer());
                     }
 
                 }
@@ -403,7 +432,7 @@ namespace IO.Persona.MobileAds.Unity
                 {
                     if (delayedCoroutine != null)
                     {
-                        this.parent.StopCoroutine(delayedCoroutine);
+                        parent.StopCoroutine(delayedCoroutine);
                         delayedCoroutine = null;
                     }
                 }

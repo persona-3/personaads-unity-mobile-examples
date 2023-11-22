@@ -5,22 +5,20 @@ namespace IO.Persona.MobileAds.Unity
 {
     public class ViewVisibilityOnScreen
     {
-        public static float GetVisiblePercentage(RectTransform rectTransform, Canvas canvas)
+        public static float GetVisiblePercentage(RectTransform targetRectTransform, RectTransform canvasRectTransform)
         {
-            // Get the Canvas RectTransform (assuming the Canvas is the parent of the image)
-            RectTransform canvasRectTransform = canvas.GetComponent<RectTransform>();
-
             // Convert RectTransforms to screen space Rects
-            Rect imageRectangle = GetScreenSpaceRect(rectTransform);
+            Rect targetRectangle = GetScreenSpaceRect(targetRectTransform);
             Rect canvasRectangle = GetScreenSpaceRect(canvasRectTransform);
 
             // Calculate intersecting area
-            Rect intersection = CalculateIntersection(imageRectangle, canvasRectangle);
+            Rect intersectionRectangle = GetIntersectionRect(targetRectangle, canvasRectangle);
 
             // Calculate and display intersecting area's size
-            float visibleImageArea = imageRectangle.width * imageRectangle.height;
-            float intersectingArea = intersection.width * intersection.height;
-            float percentageVisible = (intersectingArea / visibleImageArea) * 100f;
+            float targetRectangleArea = targetRectangle.width * targetRectangle.height;
+            if (targetRectangleArea == 0) return 0f;
+            float intersectionRectangleArea = intersectionRectangle.width * intersectionRectangle.height;
+            float percentageVisible = (intersectionRectangleArea / targetRectangleArea) * 100f;
 
             return percentageVisible;
         }
@@ -39,7 +37,7 @@ namespace IO.Persona.MobileAds.Unity
             return new Rect(bottomLeftScreen.x, bottomLeftScreen.y, topRightScreen.x - bottomLeftScreen.x, topRightScreen.y - bottomLeftScreen.y);
         }
 
-        private static Rect CalculateIntersection(Rect rect1, Rect rect2)
+        private static Rect GetIntersectionRect(Rect rect1, Rect rect2)
         {
             float x = Mathf.Max(rect1.xMin, rect2.xMin);
             float y = Mathf.Max(rect1.yMin, rect2.yMin);

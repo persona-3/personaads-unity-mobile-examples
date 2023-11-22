@@ -11,10 +11,8 @@ namespace IO.Persona.MobileAds.Unity
 {
     public class Util
     {
-        public static bool IsCredentialsValid(Environment? currentEnvironment, string adUnitId)
+        public static bool IsCredentialsValid(string apiKey, Environment? currentEnvironment, string adUnitId)
         {
-            string apiKey = PersonaAdSDK.GetApiKey();
-
             if (apiKey == null || currentEnvironment == null)
             {
                 if (apiKey == null) SentrySdk.CaptureMessage("apiKey is null", SentryLevel.Error);
@@ -57,65 +55,10 @@ namespace IO.Persona.MobileAds.Unity
 
         public static string GetFallbackImageUrl(int width, int height)
         {
-            return ("https://storage.googleapis.com/fallback-ad-inventory/" + width.ToString() + "x" + height.ToString() + ".png");
+            return (Constants.FALLBACK_MEDIA_BASE_URL + width.ToString() + "x" + height.ToString() + ".png");
         }
 
-        public static async Task<Texture2D> DownloadImageFromUrl(string mediaUrl)
-        {
-            SentrySdk.AddBreadcrumb(message: "Beginning DownloadImageFromUrl", category: "sdk.milestone", level: BreadcrumbLevel.Info);
-            using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(mediaUrl))
-            {
-                SentrySdk.AddBreadcrumb(message: $"DownloadImageFromUrl url - {mediaUrl}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
-                var asyncOperation = request.SendWebRequest();
-                while (!asyncOperation.isDone)
-                {
-                    await Task.Yield(); // Yield to prevent blocking the main thread
-                }
 
-                if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
-                {
-                    throw new Exception(request.error);
-                    //Debug.LogError("Image download error: " + request.error);
-                    //return null;
-                }
-                else
-                {
-                    Texture2D downloadedTexture = DownloadHandlerTexture.GetContent(request);
-                    return downloadedTexture;
-                }
-            }
-        }
-
-        public static async Task<byte[]> DownloadGifFromUrl(string url)
-        {
-            SentrySdk.AddBreadcrumb(message: "Beginning DownloadGifFromUrl", category: "sdk.milestone", level: BreadcrumbLevel.Info);
-            using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
-
-            {
-                SentrySdk.AddBreadcrumb(message: $"DownloadGifFromUrl url - {url}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
-                UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
-
-                while (!asyncOperation.isDone)
-                {
-                    await Task.Yield();
-                }
-
-                if (webRequest.result != UnityWebRequest.Result.Success)
-                {
-                    throw new Exception(webRequest.error);
-                    //SentrySdk.CaptureException(new Exception(webRequest.error));
-                    //Debug.LogError("Error: " + webRequest.error);
-                    //return null;
-                }
-                else
-                {
-                    byte[] gifBytes = webRequest.downloadHandler.data;
-                    SentrySdk.AddBreadcrumb(message: $"gifBytes- {gifBytes}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
-
-                    return gifBytes;
-                }
-            }
-        }
 
         public static List<(Texture2D texture, float delay)> SplitGifIntoFrames(byte[] gifBytes)
         {
@@ -154,6 +97,38 @@ namespace IO.Persona.MobileAds.Unity
                 currentFrameIndex = (currentFrameIndex + 1) % textures.Count;
 
                 yield return new WaitForSeconds(frameData.delay);
+            }
+        }
+
+        public static string AppendQueryParam(string baseUrl, string newQueryParam)
+        {
+            try
+            {
+                UriBuilder uriBuilder = new UriBuilder(baseUrl);
+                string existingQuery = uriBuilder.Query;
+
+                if (existingQuery.StartsWith("?"))
+                {
+                    existingQuery = existingQuery.Substring(1);
+                }
+
+                if (!string.IsNullOrEmpty(existingQuery))
+                {
+                    existingQuery += "&" + newQueryParam;
+                }
+                else
+                {
+                    existingQuery = newQueryParam;
+                }
+
+                uriBuilder.Query = existingQuery;
+                string updatedUrl = uriBuilder.Uri.ToString();
+                return updatedUrl;
+            }
+            catch (Exception e)
+            {
+                SentrySdk.CaptureException(e);
+                return baseUrl;
             }
         }
     }
