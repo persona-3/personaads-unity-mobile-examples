@@ -16,6 +16,7 @@ namespace IO.Persona.MobileAds.Unity
 
             // Calculate and display intersecting area's size
             float targetRectangleArea = targetRectangle.width * targetRectangle.height;
+            if (targetRectangleArea == 0) return 0f;
             float intersectionRectangleArea = intersectionRectangle.width * intersectionRectangle.height;
             float percentageVisible = (intersectionRectangleArea / targetRectangleArea) * 100f;
 

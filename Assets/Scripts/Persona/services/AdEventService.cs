@@ -73,7 +73,6 @@ namespace IO.Persona.MobileAds.Unity
             { "x-api-key", _personaAdSDK.GetApiKey() },
             { "Package-Name", Application.identifier }
         };
-            Debug.Log(headers["x-api-key"]);
 
             DeviceMetadata deviceMetadata = await _clientDevice.GetDeviceMetadata();
 
