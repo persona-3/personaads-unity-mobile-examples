@@ -8,7 +8,6 @@ namespace IO.Persona.MobileAds.Unity
         public static readonly string PRODUCTION_API_BASE_URL = "https://www.persona3.tech";
         public static readonly string FALLBACK_MEDIA_BASE_URL = "https://storage.googleapis.com/fallback-ad-inventory/";
         public static readonly string FALLBACK_MEDIA_CTA_URL = "https://www.persona3.io";
-        public static readonly string JSON_IP_URL = "https://jsonip.com";
 
         public static readonly float VISIBILITY_THRESHOLD_PERCENTAGE = 80;
         public static readonly float VISIBILITY_DURATION_THRESHOLD = 1f;
@@ -22,5 +21,6 @@ namespace IO.Persona.MobileAds.Unity
         public static readonly float WATERMARK_TEXT_FONT_SIZE = 25;
 
         public static readonly string CONFIG_ASSET_RESOURCE_DIR_PATH = "Assets/Resources/Persona";
+        public static readonly string SDK_RELEASE_VERSION = "0.0.9";
     }
 }

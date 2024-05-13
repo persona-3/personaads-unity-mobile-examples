@@ -5,6 +5,7 @@ namespace IO.Persona.MobileAds.Unity
     [Serializable]
     public class FetchCreativeApiResponse
     {
+        public bool success;
         public string message;
         public ApiResponseData data;
     }
@@ -12,9 +13,9 @@ namespace IO.Persona.MobileAds.Unity
     [Serializable]
     public class ApiResponseData
     {
-        public string id;
-        public string ctaUrl;
-        public string mediaUrl;
+        public string? id;
+        public string? ctaUrl;
+        public string? mediaUrl;
         public ApiResponseDimensions dimensions;
     }
 

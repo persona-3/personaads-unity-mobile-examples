@@ -5,8 +5,6 @@ namespace IO.Persona.MobileAds.Unity
     [Serializable]
     public class DeviceMetadata
     {
-        public string ipAddress;
-        public string userAgent;
         public string deviceOrientation;
         public string os;
         public string browser;
@@ -14,10 +12,8 @@ namespace IO.Persona.MobileAds.Unity
         public string devicePlatform;
         public string deviceAdvertisingId;
 
-        public DeviceMetadata(string ipAddress, string userAgent, string deviceOrientation, BrowserInfo browserInfo, string devicePlatform, string deviceAdvertisingId)
+        public DeviceMetadata(string deviceOrientation, BrowserInfo browserInfo, string devicePlatform, string deviceAdvertisingId)
         {
-            this.ipAddress = ipAddress;
-            this.userAgent = userAgent;
             this.deviceOrientation = deviceOrientation;
             this.os = browserInfo?.os;
             this.browser = browserInfo?.browser;

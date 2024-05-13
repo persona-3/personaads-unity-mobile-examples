@@ -11,8 +11,9 @@ namespace IO.Persona.MobileAds.Unity
         public string creativeId;
         public float visiblePercentage;
         public string triggeredAt;
+        public string release;
 
-        public OnAdImpressionEventProperties(string placementId, string walletAddress, string userEmail, DeviceMetadata deviceMetadata, string creativeId, float visiblePercentage, string triggeredAt)
+        public OnAdImpressionEventProperties(string placementId, string walletAddress, string userEmail, DeviceMetadata deviceMetadata, string creativeId, float visiblePercentage, string triggeredAt, string release)
         {
             this.placementId = placementId;
             this.walletAddress = walletAddress;
@@ -21,6 +22,7 @@ namespace IO.Persona.MobileAds.Unity
             this.creativeId = creativeId;
             this.visiblePercentage = visiblePercentage;
             this.triggeredAt = triggeredAt;
+            this.release = release;
         }
     }
 }

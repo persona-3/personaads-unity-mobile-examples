@@ -17,7 +17,7 @@ namespace IO.Persona.MobileAds.Unity
 
     }
 
-    public class APIClient: IAPIClient
+    public class APIClient : IAPIClient
     {
         public APIClient() { }
 
@@ -55,12 +55,15 @@ namespace IO.Persona.MobileAds.Unity
 
                 if (webRequest.result != UnityWebRequest.Result.Success)
                 {
-                    throw new Exception(webRequest.error);
+                    throw new UnityWebRequestException(webRequest);
                 }
                 else
                 {
                     string response = webRequest.downloadHandler.text;
-                    return response;
+                    long statusCode = webRequest.responseCode;
+                    ApiResponse apiResponse = new ApiResponse(statusCode, response);
+                    string apiResponseJson = JsonUtility.ToJson(apiResponse);
+                    return apiResponseJson;
                 }
             }
         }
