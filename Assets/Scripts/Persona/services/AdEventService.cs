@@ -9,7 +9,7 @@ namespace IO.Persona.MobileAds.Unity
     {
         void SendAdRequestedEvent(ITransaction transaction);
         void SendAdRequestCompletedEvent(FetchCreativeApiResponse fetchedCreative);
-        void SendAdRequestFailedEvent(Exception e);
+        void SendAdRequestFailedEvent(string? errorMessage, long? errorStatus);
         void SendAdLoadCompletedEvent(FetchCreativeApiResponse fetchedCreative);
         void SendAdLoadFailedEvent(FetchCreativeApiResponse fetchedCreative, Exception e);
         void SendAdImpressionEvent(FetchCreativeApiResponse fetchedCreative, float visiblePercentage, string triggeredAt);
@@ -20,18 +20,16 @@ namespace IO.Persona.MobileAds.Unity
     {
         private readonly string requestId;
         private readonly string adUnitId;
-        private readonly string walletAddress;
-        private readonly string userEmail;
         private readonly IAPIClient _apiClient;
+        private readonly IClientIdentity _clientIdentity;
         private readonly IClientDevice _clientDevice;
         private readonly IPersonaAdSDK _personaAdSDK;
 
-        public AdEventService(string requestId, string adUnitId, string walletAddress, string userEmail, IAPIClient apiClient, IClientDevice clientDevice, IPersonaAdSDK personaAdSDK)
+        public AdEventService(string requestId, string adUnitId, IClientIdentity clientIdentity, IAPIClient apiClient, IClientDevice clientDevice, IPersonaAdSDK personaAdSDK)
         {
             this.requestId = requestId;
             this.adUnitId = adUnitId;
-            this.walletAddress = walletAddress;
-            this.userEmail = userEmail;
+            _clientIdentity = clientIdentity;
             _apiClient = apiClient;
             _clientDevice = clientDevice;
             _personaAdSDK = personaAdSDK;
@@ -48,9 +46,9 @@ namespace IO.Persona.MobileAds.Unity
         };
 
             DeviceMetadata deviceMetadata = await _clientDevice.GetDeviceMetadata();
+            string userEmail = _clientIdentity.GetUserEmail();
+            string walletAddress = _clientIdentity.GetWalletAddress();
 
-            transaction.SetTag("p3-device-ip-address", deviceMetadata.ipAddress);
-            transaction.SetTag("p3-device-user-agent", deviceMetadata.userAgent);
             transaction.SetTag("p3-device-orientation", deviceMetadata.deviceOrientation);
             transaction.SetTag("p3-device-os", deviceMetadata.os);
             transaction.SetTag("p3-device-browser", deviceMetadata.browser);
@@ -58,7 +56,7 @@ namespace IO.Persona.MobileAds.Unity
             transaction.SetTag("p3-device-platform", deviceMetadata.devicePlatform);
             transaction.SetTag("p3-device-advertising-id", deviceMetadata.deviceAdvertisingId);
 
-            OnAdRequestedEventProperties reqBodyProperties = new OnAdRequestedEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata);
+            OnAdRequestedEventProperties reqBodyProperties = new OnAdRequestedEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, Constants.SDK_RELEASE_VERSION);
             string reqBody = JsonUtility.ToJson(reqBodyProperties);
 
             _apiClient.MakePostRequestAsync(apiUrl, reqBody, null, headers);
@@ -75,14 +73,16 @@ namespace IO.Persona.MobileAds.Unity
         };
 
             DeviceMetadata deviceMetadata = await _clientDevice.GetDeviceMetadata();
+            string userEmail = _clientIdentity.GetUserEmail();
+            string walletAddress = _clientIdentity.GetWalletAddress();
 
-            OnAdRequestCompletedEventProperties reqBodyProperties = new OnAdRequestCompletedEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id);
+            OnAdRequestCompletedEventProperties reqBodyProperties = new OnAdRequestCompletedEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id, Constants.SDK_RELEASE_VERSION);
             string reqBody = JsonUtility.ToJson(reqBodyProperties);
 
             _apiClient.MakePostRequestAsync(apiUrl, reqBody, null, headers);
         }
 
-        public async void SendAdRequestFailedEvent(Exception e)
+        public async void SendAdRequestFailedEvent(string errorMessage, long? errorStatus)
         {
             string apiUrl = $"{Util.GetBaseUrl(_personaAdSDK.GetEnvironment())}/events/ad/request/fail";
             Dictionary<string, string> headers = new Dictionary<string, string>
@@ -93,8 +93,10 @@ namespace IO.Persona.MobileAds.Unity
         };
 
             DeviceMetadata deviceMetadata = await _clientDevice.GetDeviceMetadata();
+            string userEmail = _clientIdentity.GetUserEmail();
+            string walletAddress = _clientIdentity.GetWalletAddress();
 
-            OnAdRequestFailedEventProperties reqBodyProperties = new OnAdRequestFailedEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, 400, e.Message);
+            OnAdRequestFailedEventProperties reqBodyProperties = new OnAdRequestFailedEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, errorStatus ?? -1, errorMessage, Constants.SDK_RELEASE_VERSION);
             string reqBody = JsonUtility.ToJson(reqBodyProperties);
 
             _apiClient.MakePostRequestAsync(apiUrl, reqBody, null, headers);
@@ -111,8 +113,10 @@ namespace IO.Persona.MobileAds.Unity
         };
 
             DeviceMetadata deviceMetadata = await _clientDevice.GetDeviceMetadata();
+            string userEmail = _clientIdentity.GetUserEmail();
+            string walletAddress = _clientIdentity.GetWalletAddress();
 
-            OnAdLoadCompletedEventProperties reqBodyProperties = new OnAdLoadCompletedEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id);
+            OnAdLoadCompletedEventProperties reqBodyProperties = new OnAdLoadCompletedEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id, Constants.SDK_RELEASE_VERSION);
             string reqBody = JsonUtility.ToJson(reqBodyProperties);
 
             _apiClient.MakePostRequestAsync(apiUrl, reqBody, null, headers);
@@ -129,8 +133,10 @@ namespace IO.Persona.MobileAds.Unity
         };
 
             DeviceMetadata deviceMetadata = await _clientDevice.GetDeviceMetadata();
+            string userEmail = _clientIdentity.GetUserEmail();
+            string walletAddress = _clientIdentity.GetWalletAddress();
 
-            OnAdLoadFailedEventProperties reqBodyProperties = new OnAdLoadFailedEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id, 400, e.Message);
+            OnAdLoadFailedEventProperties reqBodyProperties = new OnAdLoadFailedEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id, 400, e.Message, Constants.SDK_RELEASE_VERSION);
             string reqBody = JsonUtility.ToJson(reqBodyProperties);
 
             _apiClient.MakePostRequestAsync(apiUrl, reqBody, null, headers);
@@ -147,8 +153,10 @@ namespace IO.Persona.MobileAds.Unity
         };
 
             DeviceMetadata deviceMetadata = await _clientDevice.GetDeviceMetadata();
+            string userEmail = _clientIdentity.GetUserEmail();
+            string walletAddress = _clientIdentity.GetWalletAddress();
 
-            OnAdImpressionEventProperties reqBodyProperties = new OnAdImpressionEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id, visiblePercentage, triggeredAt);
+            OnAdImpressionEventProperties reqBodyProperties = new OnAdImpressionEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id, visiblePercentage, triggeredAt, Constants.SDK_RELEASE_VERSION);
             string reqBody = JsonUtility.ToJson(reqBodyProperties);
 
             _apiClient.MakePostRequestAsync(apiUrl, reqBody, null, headers);
@@ -165,8 +173,10 @@ namespace IO.Persona.MobileAds.Unity
         };
 
             DeviceMetadata deviceMetadata = await _clientDevice.GetDeviceMetadata();
+            string userEmail = _clientIdentity.GetUserEmail();
+            string walletAddress = _clientIdentity.GetWalletAddress();
 
-            OnAdChargeableImpressionEventProperties reqBodyProperties = new OnAdChargeableImpressionEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id, visiblePercentage, triggeredAt);
+            OnAdChargeableImpressionEventProperties reqBodyProperties = new OnAdChargeableImpressionEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id, visiblePercentage, triggeredAt, Constants.SDK_RELEASE_VERSION);
             string reqBody = JsonUtility.ToJson(reqBodyProperties);
 
             _apiClient.MakePostRequestAsync(apiUrl, reqBody, null, headers);
@@ -183,8 +193,10 @@ namespace IO.Persona.MobileAds.Unity
         };
 
             DeviceMetadata deviceMetadata = await _clientDevice.GetDeviceMetadata();
+            string userEmail = _clientIdentity.GetUserEmail();
+            string walletAddress = _clientIdentity.GetWalletAddress();
 
-            OnAdClickEventProperties reqBodyProperties = new OnAdClickEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id);
+            OnAdClickEventProperties reqBodyProperties = new OnAdClickEventProperties(adUnitId, walletAddress, userEmail, deviceMetadata, fetchedCreative.data.id, Constants.SDK_RELEASE_VERSION);
             string reqBody = JsonUtility.ToJson(reqBodyProperties);
 
             _apiClient.MakePostRequestAsync(apiUrl, reqBody, null, headers);

@@ -11,33 +11,35 @@ namespace IO.Persona.MobileAds.Unity
     public class BannerView
     {
         private readonly string adUnitId = "";
-        private string userEmail = null;
-        private string walletAddress = null;
         private string requestId = "";
         private readonly MonoBehaviour parent;
         Dictionary<string, string> customizedTags = new Dictionary<string, string>();
         private IAPIClient _apiClient;
         private ClientDevice _clientDevice;
+        private IClientIdentity _clientIdentity;
         private IAdEventService _adEventService;
         private IPersonaAdSDK _personaAdSDK;
+        private DeviceMetadata deviceMetadata;
 
         public BannerView(MonoBehaviour parent, string adUnitId)
         {
             this.adUnitId = adUnitId;
             this.parent = parent;
             _apiClient = new APIClient();
+            _clientIdentity = new ClientIdentity();
             _clientDevice = new ClientDevice(_apiClient);
             _personaAdSDK = new PersonaAdSDK();
             requestId = Util.GenerateRequestId();
-            _adEventService = new AdEventService(requestId, this.adUnitId, walletAddress, userEmail, _apiClient, _clientDevice, _personaAdSDK);
+            _adEventService = new AdEventService(requestId, this.adUnitId, _clientIdentity, _apiClient, _clientDevice, _personaAdSDK);
         }
 
-        public BannerView(MonoBehaviour parent, string adUnitId, IPersonaAdSDK personaAdSDK, IAPIClient apiClient, IAdEventService adEventService)
+        public BannerView(MonoBehaviour parent, string adUnitId, IPersonaAdSDK personaAdSDK, IAPIClient apiClient, IClientIdentity clientIdentity, IAdEventService adEventService)
         {
             this.adUnitId = adUnitId;
             this.parent = parent;
             _personaAdSDK = personaAdSDK;
             _apiClient = apiClient;
+            _clientIdentity = clientIdentity;
             _clientDevice = new ClientDevice(_apiClient);
             requestId = Util.GenerateRequestId();
             _adEventService = adEventService;
@@ -45,22 +47,12 @@ namespace IO.Persona.MobileAds.Unity
 
         public void SetUserEmail(string userEmail)
         {
-            this.userEmail = userEmail;
+            _clientIdentity.SetUserEmail(userEmail);
         }
 
         public void SetWalletAddress(string walletAddress)
         {
-            this.walletAddress = walletAddress;
-        }
-
-        public string GetUserEmail()
-        {
-            return userEmail;
-        }
-
-        public string GetWalletAddress()
-        {
-            return walletAddress;
+            _clientIdentity.SetWalletAddress(walletAddress);
         }
 
         public async void LoadAd()
@@ -78,29 +70,25 @@ namespace IO.Persona.MobileAds.Unity
             transaction.SetTag("p3-api-key", apiKey);
             transaction.SetTag("p3-current-environment", currentEnvironment.ToString());
             transaction.SetTag("p3-ad-unit-id", adUnitId);
-            transaction.SetTag("p3-user-email", userEmail);
-            transaction.SetTag("p3-wallet-address", walletAddress);
+            transaction.SetTag("p3-user-email", _clientIdentity.GetUserEmail());
+            transaction.SetTag("p3-wallet-address", _clientIdentity.GetWalletAddress());
             transaction.SetTag("p3-app-package-name", Application.identifier);
             customizedTags.Add("p3-request-id", requestId);
             customizedTags.Add("p3-api-key", apiKey);
             customizedTags.Add("p3-current-environment", currentEnvironment.ToString());
             customizedTags.Add("p3-ad-unit-id", adUnitId);
-            customizedTags.Add("p3-user-email", userEmail);
-            customizedTags.Add("p3-wallet-address", walletAddress);
+            customizedTags.Add("p3-user-email", _clientIdentity.GetUserEmail());
+            customizedTags.Add("p3-wallet-address", _clientIdentity.GetWalletAddress());
             customizedTags.Add("p3-app-package-name", Application.identifier);
 
             if (currentEnvironment != Environment.STAGING) _adEventService.SendAdRequestedEvent(transaction);
 
             try
             {
-                ISpan fetchIpAddressSpan = transaction.StartChild("fetch_ip_address", "Fetch IP Address");
-                //FetchIpAddress();
-                string ipAddress = "";
-                SentrySdk.AddBreadcrumb(message: "Calling getIpAddress", category: "sdk.milestone", level: BreadcrumbLevel.Info);
-                fetchIpAddressSpan.Finish();
                 ISpan fetchCreativeSpan = transaction.StartChild("fetch_creative", "Fetch Creative");
                 SentrySdk.AddBreadcrumb(message: "Fetching Creative", category: "sdk.milestone", level: BreadcrumbLevel.Info);
-                FetchCreativeApiResponse fetchedCreative = await TriggerFetchCreative(ipAddress);
+                ApiResponse apiResponse = await TriggerFetchCreative();
+                FetchCreativeApiResponse fetchedCreative = JsonUtility.FromJson<FetchCreativeApiResponse>(apiResponse.data);
 
                 transaction.SetTag("p3-creative-id", fetchedCreative.data?.id);
                 transaction.SetTag("p3-creative-media-url", fetchedCreative.data?.mediaUrl);
@@ -115,23 +103,42 @@ namespace IO.Persona.MobileAds.Unity
 
                 fetchCreativeSpan.Finish();
 
-                TriggerFetchCreativeResponseHandler(fetchedCreative, (Environment)currentEnvironment, transaction);
+                if (fetchedCreative.success)
+                {
+                    TriggerFetchCreativeResponseHandler(fetchedCreative, (Environment)currentEnvironment, transaction);
+                }
+                else
+                {
+                    string defaultErrMsg = "Response not received or invalid response received";
+                    TriggerFetchCreativeErrorHandler(fetchedCreative?.message ?? defaultErrMsg, apiResponse?.status);
+                    ISpan renderFallbackAdSpan = transaction.StartChild("render_fallback_ad", "Render Fallback Ad");
+                    await RenderFallbackMedia(fetchedCreative, renderFallbackAdSpan);
+                    renderFallbackAdSpan.Finish();
+                }
+            }
+            catch (UnityWebRequestException ex)
+            {
+                SendExceptionToSentry(ex, transaction, customizedTags, "LoadAd function");
+                transaction.Finish();
+                string defaultErrMsg = "Something went wrong while fetching creative";
+                TriggerFetchCreativeErrorHandler(ex?.Message ?? defaultErrMsg, ex?.StatusCode ?? null);
             }
             catch (Exception e)
             {
                 SendExceptionToSentry(e, transaction, customizedTags, "LoadAd function");
                 transaction.Finish();
-                TriggerFetchCreativeErrorHandler(e);
+                string defaultErrMsg = "Something went wrong while fetching creative";
+                TriggerFetchCreativeErrorHandler(e?.Message ?? defaultErrMsg, null);
             }
 
 
         }
 
-        private async Task<FetchCreativeApiResponse> TriggerFetchCreative(string ipAddress)
+        private async Task<ApiResponse> TriggerFetchCreative()
         {
             try
             {
-                string apiUrl = $"{Util.GetBaseUrl(_personaAdSDK.GetEnvironment())}/creatives";
+                string apiUrl = $"{Util.GetBaseUrl(_personaAdSDK.GetEnvironment())}/v2/creatives";
                 Dictionary<string, string> headers = new Dictionary<string, string>
         {
             { "x-request-id", requestId },
@@ -142,14 +149,34 @@ namespace IO.Persona.MobileAds.Unity
                 Dictionary<string, string> queryParams = new Dictionary<string, string>
         {
             { "placementId", adUnitId },
-            { "ipAddress", ipAddress },
-            { "walletAddress", walletAddress },
-            { "userEmail", userEmail }
+            { "walletAddress", _clientIdentity.GetWalletAddress() },
+            { "userEmail", _clientIdentity.GetUserEmail() }
         };
 
+                DeviceMetadata deviceMetadata = await _clientDevice.GetDeviceMetadata();
+
+                queryParams["deviceOrientation"] = deviceMetadata.deviceOrientation;
+                queryParams["os"] = deviceMetadata.os;
+                queryParams["browser"] = deviceMetadata.browser;
+                queryParams["deviceType"] = deviceMetadata.deviceType;
+                queryParams["devicePlatform"] = deviceMetadata.devicePlatform;
+                queryParams["deviceAdvertisingId"] = deviceMetadata.deviceAdvertisingId;
+
+
                 string response = await _apiClient.MakeGetRequestAsync(apiUrl, queryParams, headers);
-                FetchCreativeApiResponse apiResponse = JsonUtility.FromJson<FetchCreativeApiResponse>(response);
+                ApiResponse apiResponse = JsonUtility.FromJson<ApiResponse>(response);
                 return apiResponse;
+            }
+            catch (UnityWebRequestException ex) // Change Exception to UnityWebRequestException
+            {
+                string errorMessage = ex.Message;
+                ApiResponse adResponse = new ApiResponse(ex.StatusCode, ex.Data);
+
+                if (adResponse.status == 429)
+                {
+                    return adResponse;
+                }
+                throw ex;
             }
             catch (Exception e)
             {
@@ -210,9 +237,9 @@ namespace IO.Persona.MobileAds.Unity
             }
         }
 
-        private void TriggerFetchCreativeErrorHandler(Exception e)
+        private void TriggerFetchCreativeErrorHandler(string errorMessage, long? errorStatus)
         {
-            _adEventService.SendAdRequestFailedEvent(e);
+            _adEventService.SendAdRequestFailedEvent(errorMessage, errorStatus);
         }
 
 
@@ -254,8 +281,14 @@ namespace IO.Persona.MobileAds.Unity
                     button.onClick.AddListener(() =>
                     {
                         _adEventService.SendAdClickEvent(fetchedCreative);
-                        string targetUrl = Util.AppendQueryParam(fetchedCreative.data.ctaUrl, $"prsna_id={requestId}");
-                        Application.OpenURL(targetUrl);
+                        string clickProxyUrl = $"{Util.GetBaseUrl(_personaAdSDK.GetEnvironment())}/click-proxy";
+                        string creativeId = fetchedCreative.data.id;
+                        clickProxyUrl = Util.AppendQueryParam(clickProxyUrl, $"creativeId={creativeId}");
+                        if (!string.IsNullOrEmpty(requestId))
+                        {
+                            clickProxyUrl = Util.AppendQueryParam(clickProxyUrl, $"requestId={requestId}");
+                        }
+                        Application.OpenURL(clickProxyUrl);
                     });
                 }
                 catch (Exception e2)

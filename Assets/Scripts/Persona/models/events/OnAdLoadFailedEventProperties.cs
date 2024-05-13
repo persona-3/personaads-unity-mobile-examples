@@ -11,8 +11,9 @@ namespace IO.Persona.MobileAds.Unity
         public string creativeId;
         public int errorStatus;
         public string errorMessage;
+        public string release;
 
-        public OnAdLoadFailedEventProperties(string placementId, string walletAddress, string userEmail, DeviceMetadata deviceMetadata, string creativeId, int errorStatus, string errorMessage)
+        public OnAdLoadFailedEventProperties(string placementId, string walletAddress, string userEmail, DeviceMetadata deviceMetadata, string creativeId, int errorStatus, string errorMessage, string release)
         {
             this.placementId = placementId;
             this.walletAddress = walletAddress;
@@ -21,6 +22,7 @@ namespace IO.Persona.MobileAds.Unity
             this.creativeId = creativeId;
             this.errorStatus = errorStatus;
             this.errorMessage = errorMessage;
+            this.release = release;
         }
     }
 }

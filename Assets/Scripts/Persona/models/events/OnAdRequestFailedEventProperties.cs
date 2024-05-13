@@ -8,10 +8,11 @@ namespace IO.Persona.MobileAds.Unity
         public string walletAddress;
         public string userEmail;
         public DeviceMetadata deviceMetadata;
-        public int errorStatus;
+        public long errorStatus;
         public string errorMessage;
+        public string release;
 
-        public OnAdRequestFailedEventProperties(string placementId, string walletAddress, string userEmail, DeviceMetadata deviceMetadata, int errorStatus, string errorMessage)
+        public OnAdRequestFailedEventProperties(string placementId, string walletAddress, string userEmail, DeviceMetadata deviceMetadata, long errorStatus, string errorMessage, string release)
         {
             this.placementId = placementId;
             this.walletAddress = walletAddress;
@@ -19,6 +20,7 @@ namespace IO.Persona.MobileAds.Unity
             this.deviceMetadata = deviceMetadata;
             this.errorStatus = errorStatus;
             this.errorMessage = errorMessage;
+            this.release = release;
         }
     }
 }
