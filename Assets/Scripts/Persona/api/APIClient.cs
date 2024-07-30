@@ -13,7 +13,7 @@ namespace IO.Persona.MobileAds.Unity
         Task<string> MakeGetRequestAsync(string url, Dictionary<string, string> queryParams, Dictionary<string, string> headers);
         Task<string> MakePostRequestAsync(string url, string postData, Dictionary<string, string> queryParams, Dictionary<string, string> headers);
         Task<Texture2D> DownloadImageFromUrl(string mediaUrl);
-        Task<byte[]> DownloadGifFromUrl(string url);
+        Task<(byte[] data, string contentType)> DownloadFileFromUrl(string url);
 
     }
 
@@ -141,13 +141,12 @@ namespace IO.Persona.MobileAds.Unity
             }
         }
 
-        public async Task<byte[]> DownloadGifFromUrl(string url)
+        public async Task<(byte[] data, string contentType)> DownloadFileFromUrl(string url)
         {
-            SentrySdk.AddBreadcrumb(message: "Beginning DownloadGifFromUrl", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+            SentrySdk.AddBreadcrumb(message: "Beginning DownloadFileFromUrl", category: "sdk.milestone", level: BreadcrumbLevel.Info);
             using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
-
             {
-                SentrySdk.AddBreadcrumb(message: $"DownloadGifFromUrl url - {url}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
+                SentrySdk.AddBreadcrumb(message: $"DownloadFileFromUrl url - {url}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
                 UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
 
                 while (!asyncOperation.isDone)
@@ -158,17 +157,12 @@ namespace IO.Persona.MobileAds.Unity
                 if (webRequest.result != UnityWebRequest.Result.Success)
                 {
                     throw new Exception(webRequest.error);
-                    //SentrySdk.CaptureException(new Exception(webRequest.error));
-                    //Debug.LogError("Error: " + webRequest.error);
-                    //return null;
                 }
-                else
-                {
-                    byte[] gifBytes = webRequest.downloadHandler.data;
-                    SentrySdk.AddBreadcrumb(message: $"gifBytes- {gifBytes}", category: "sdk.milestone", level: BreadcrumbLevel.Info);
 
-                    return gifBytes;
-                }
+                var data = webRequest.downloadHandler.data;
+                var contentType = webRequest.GetResponseHeader("Content-Type");
+
+                return (data, contentType);
             }
         }
     }

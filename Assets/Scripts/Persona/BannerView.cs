@@ -257,25 +257,28 @@ namespace IO.Persona.MobileAds.Unity
 
                 string mediaUrl = fetchedCreative.data.mediaUrl;
 
-                string[] mediaUrlParts = mediaUrl.Split(".");
-
-                if (mediaUrlParts[mediaUrlParts.Length - 1].Contains("gif"))
+                var (fileData, contentType) = await _apiClient.DownloadFileFromUrl(mediaUrl);
+                if (contentType.Contains("gif"))
                 {
-                    byte[] gifBytes = await _apiClient.DownloadGifFromUrl(mediaUrl);
-
-                    List<(Texture2D, float)> textureImages = Util.SplitGifIntoFrames(gifBytes);
+                    List<(Texture2D, float)> textureImages = Util.SplitGifIntoFrames(fileData);
                     parent.StartCoroutine(Util.PlayGifAnimation(textureImages, rawImageComponent));
+                }
+                else if (contentType.Contains("image"))
+                {
+                    Texture2D imageTexture = new Texture2D(2, 2);
+                    imageTexture.LoadImage(fileData);
+                    rawImageComponent.texture = imageTexture;
                 }
                 else
                 {
-                    Texture2D imageTexture = await _apiClient.DownloadImageFromUrl(mediaUrl);
-
-                    rawImageComponent.texture = imageTexture;
+                    Debug.LogError("Unsupported media type: " + contentType);
                 }
                 DisplayPersonaTag(rawImageComponent);
                 try
                 {
                     TrackVisibilityOnScreen(fetchedCreative, rawImageComponent, canvas);
+
+                    DeviceMetadata deviceMetadata = await _clientDevice.GetDeviceMetadata();
 
                     Button button = rawImageGO.AddComponent<Button>();
                     button.onClick.AddListener(() =>
@@ -283,11 +286,35 @@ namespace IO.Persona.MobileAds.Unity
                         _adEventService.SendAdClickEvent(fetchedCreative);
                         string clickProxyUrl = $"{Util.GetBaseUrl(_personaAdSDK.GetEnvironment())}/click-proxy";
                         string creativeId = fetchedCreative.data.id;
+                        string placementId = this.adUnitId;
                         clickProxyUrl = Util.AppendQueryParam(clickProxyUrl, $"creativeId={creativeId}");
+                        clickProxyUrl = Util.AppendQueryParam(clickProxyUrl, $"placementId={placementId}");
+
                         if (!string.IsNullOrEmpty(requestId))
                         {
                             clickProxyUrl = Util.AppendQueryParam(clickProxyUrl, $"requestId={requestId}");
                         }
+
+                        if(!string.IsNullOrEmpty(deviceMetadata.os))
+                        {
+                            clickProxyUrl = Util.AppendQueryParam(clickProxyUrl, $"os={deviceMetadata.os}");
+                        }
+
+                        if(!string.IsNullOrEmpty(deviceMetadata.browser))
+                        {
+                            clickProxyUrl = Util.AppendQueryParam(clickProxyUrl, $"browser={deviceMetadata.browser}");
+                        }
+
+                        if(!string.IsNullOrEmpty(deviceMetadata.deviceType))
+                        {
+                            clickProxyUrl = Util.AppendQueryParam(clickProxyUrl, $"device={deviceMetadata.deviceType}");
+                        }
+
+                        if(!string.IsNullOrEmpty(deviceMetadata.devicePlatform))
+                        {
+                            clickProxyUrl = Util.AppendQueryParam(clickProxyUrl, $"platform={deviceMetadata.devicePlatform}");
+                        }
+
                         Application.OpenURL(clickProxyUrl);
                     });
                 }
