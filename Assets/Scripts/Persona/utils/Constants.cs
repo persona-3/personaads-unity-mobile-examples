@@ -21,6 +21,6 @@ namespace IO.Persona.MobileAds.Unity
         public static readonly float WATERMARK_TEXT_FONT_SIZE = 25;
 
         public static readonly string CONFIG_ASSET_RESOURCE_DIR_PATH = "Assets/Resources/Persona";
-        public static readonly string SDK_RELEASE_VERSION = "0.0.9";
+        public static readonly string SDK_RELEASE_VERSION = "0.0.10";
     }
 }

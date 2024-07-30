@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 using System;
+using System.Web;
 
 namespace IO.Persona.MobileAds.Unity
 {
@@ -112,16 +113,23 @@ namespace IO.Persona.MobileAds.Unity
                     existingQuery = existingQuery.Substring(1);
                 }
 
-                if (!string.IsNullOrEmpty(existingQuery))
+                var queryParams = HttpUtility.ParseQueryString(existingQuery);
+
+                // Split the new query param into key and value
+                var newQueryParamParts = newQueryParam.Split('=');
+                if (newQueryParamParts.Length == 2)
                 {
-                    existingQuery += "&" + newQueryParam;
-                }
-                else
-                {
-                    existingQuery = newQueryParam;
+                    string key = newQueryParamParts[0];
+                    string value = newQueryParamParts[1];
+
+                    // Encode the value
+                    value = HttpUtility.UrlEncode(value);
+
+                    // Add or update the query parameter
+                    queryParams[key] = value;
                 }
 
-                uriBuilder.Query = existingQuery;
+                uriBuilder.Query = queryParams.ToString();
                 string updatedUrl = uriBuilder.Uri.ToString();
                 return updatedUrl;
             }
